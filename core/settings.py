@@ -11,4 +11,5 @@ class Settings(BaseSettings):
     BASE_URL: str = getenv("BASE_URL")
     AI_TOKEN: str = getenv("AI_TOKEN")
 
+
 settings = Settings()
