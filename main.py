@@ -9,7 +9,7 @@ from aiogram.exceptions import (
     TelegramBadRequest,
 )
 from aiogram import Bot
-from core.settings import settings
+from core.config import settings
 from app import start_router
 
 bot = Bot(token=settings.BOT_TOKEN)

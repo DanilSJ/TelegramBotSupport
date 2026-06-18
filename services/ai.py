@@ -1,5 +1,5 @@
 from openai import AsyncClient
-from core.settings import settings
+from core.config import settings
 
 
 class AI:
@@ -9,7 +9,13 @@ class AI:
             base_url=settings.BASE_URL,
         )
         self.model: str = "deepseek-chat"
-        self.system_prompt: str = ""
+        self.system_prompt: str = """
+        Стиль общения: Вежливый, лаконичный, деловой. Исключены эмоциональные окраски и "водянистые" фразы
+        Если вопрос не соответствует тематике, бот обязан прервать обсуждение и выдать стандартизированный ответ:  
+  > *«Я помогаю только с вопросами по [Тематика]. Чем я могу помочь по делу?»*
+        Вот вопросы на которые ты можешь отвечать и вот к ним ответы
+        
+        """
         self.prompt: str = prompt
 
     async def send(self):
