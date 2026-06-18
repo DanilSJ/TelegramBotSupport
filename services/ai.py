@@ -1,29 +1,26 @@
 from openai import AsyncClient
-from core.config import settings
+from core.models import db_helper
+from services.crud import get_ai_use
 
 
 class AI:
     def __init__(self, prompt: str):
-        self.client = AsyncClient(
-            api_key=settings.AI_TOKEN,
-            base_url=settings.BASE_URL,
-        )
-        self.model: str = "deepseek-chat"
-        self.system_prompt: str = """
-        Стиль общения: Вежливый, лаконичный, деловой. Исключены эмоциональные окраски и "водянистые" фразы
-        Если вопрос не соответствует тематике, бот обязан прервать обсуждение и выдать стандартизированный ответ:  
-  > *«Я помогаю только с вопросами по [Тематика]. Чем я могу помочь по делу?»*
-        Вот вопросы на которые ты можешь отвечать и вот к ним ответы
-        
-        """
+        self.session = db_helper.scoped_session_dependency
         self.prompt: str = prompt
 
     async def send(self):
         try:
-            result = await self.client.chat.completions.create(
-                model=self.model,
+            ai = await get_ai_use(self.session)
+
+            client = AsyncClient(
+                api_key=ai.api_key,
+                base_url=ai.base_url,
+            )
+
+            result = await client.chat.completions.create(
+                model=ai.model,
                 messages=[
-                    {"role": "system", "content": self.system_prompt},
+                    {"role": "system", "content": ai.system_prompt},
                     {
                         "role": "user",
                         "content": self.prompt,
