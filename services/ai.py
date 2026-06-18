@@ -8,7 +8,7 @@ class AI:
             api_key=settings.AI_TOKEN,
             base_url=settings.BASE_URL,
         )
-        self.model: str = ""
+        self.model: str = "deepseek-chat"
         self.system_prompt: str = ""
         self.prompt: str = prompt
 
