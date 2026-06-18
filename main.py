@@ -10,7 +10,7 @@ from aiogram.exceptions import (
 )
 from aiogram import Bot
 from core.config import settings
-from app import start_router
+from app import start_router, echo_router
 
 bot = Bot(token=settings.BOT_TOKEN)
 
@@ -19,6 +19,10 @@ dp = Dispatcher()
 
 async def main():
     dp.include_router(start_router)
+
+    # Echo handler always downstairs
+
+    dp.include_router(echo_router)
 
     await asyncio.gather(dp.start_polling(bot))
 
