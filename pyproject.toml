@@ -6,9 +6,13 @@ readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
     "aiogram>=3.29.0",
+    "aisqlite>=1.1.0",
+    "alembic>=1.18.4",
     "black>=26.5.1",
+    "greenlet>=3.5.2",
     "openai>=2.42.0",
     "pydantic>=2.13.4",
     "pydantic-settings>=2.14.1",
     "python-dotenv>=1.2.2",
+    "sqlalchemy>=2.0.51",
 ]
