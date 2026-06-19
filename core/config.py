@@ -1,3 +1,4 @@
+from aiogram import Bot
 from pydantic_settings import BaseSettings
 from os import getenv
 from dotenv import load_dotenv
@@ -17,3 +18,4 @@ class Settings(BaseSettings):
 
 
 settings = Settings()
+bot = Bot(token=settings.BOT_TOKEN)
