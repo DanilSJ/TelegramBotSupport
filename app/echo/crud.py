@@ -13,7 +13,9 @@ async def get_operators(session: AsyncSession) -> list[User]:
     return list(users)
 
 
-async def update_user_connect_topic(session: AsyncSession, telegram_id: int, topic_id: int) -> User | None:
+async def update_user_connect_topic(
+    session: AsyncSession, telegram_id: int, topic_id: int
+) -> User | None:
     stmt = select(User).where(User.telegram_id == telegram_id)
     result = await session.execute(stmt)
     user = result.scalar_one_or_none()
