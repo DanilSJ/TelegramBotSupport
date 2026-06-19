@@ -26,6 +26,8 @@ async def echo(message: Message):
             return await message.answer("Вопрос должен быть от 8 символов!!")
 
         if user.connect_operator:
+            await create_message(session, message.text, user.user_topic_id)
+
             return await message.bot.send_message(
                 chat_id=settings.GROUP_ID_SUPPORT,
                 text=message.text,
