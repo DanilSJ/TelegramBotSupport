@@ -36,11 +36,7 @@ def get_admin_keyboard() -> InlineKeyboardMarkup:
                 text="🤖 Создать новую AI модель", callback_data="admin_create_ai"
             )
         ],
-        [
-            InlineKeyboardButton(
-                text="🔄 Выбрать AI", callback_data="admin_update_ai"
-            )
-        ],
+        [InlineKeyboardButton(text="🔄 Выбрать AI", callback_data="admin_update_ai")],
         [InlineKeyboardButton(text="❌ Закрыть", callback_data="admin_close")],
     ]
     return InlineKeyboardMarkup(inline_keyboard=buttons)
