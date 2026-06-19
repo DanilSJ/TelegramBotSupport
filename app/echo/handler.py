@@ -1,6 +1,6 @@
 from aiogram import Router, F
 from aiogram.types import Message
-from app.echo.crud import get_operators, update_user_connect_topic, create_user
+from app.echo.crud import get_operators, update_user_connect_topic, create_user, create_topic
 from core.models import db_helper
 from services.ai import AI
 import random
@@ -56,6 +56,7 @@ async def echo(message: Message):
                 await update_user_connect_topic(
                     session, message.from_user.id, topic.message_thread_id
                 )
+                await create_topic(session, f"Запрос от {message.from_user.full_name}", topic.message_thread_id)
 
                 return await message.answer(
                     "Ваш запрос передан оператору. Ожидайте ответа!"
