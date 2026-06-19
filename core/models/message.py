@@ -1,10 +1,11 @@
-from sqlalchemy import Text, ForeignKey
+from sqlalchemy import Text, ForeignKey, BigInteger
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from .base import Base
 
 
 class Message(Base):
     message: Mapped[str] = mapped_column(Text)
+    id_message: Mapped[int] = mapped_column(BigInteger)
     ai_message: Mapped[str] = mapped_column(Text, nullable=True)
 
     topic_id: Mapped[int] = mapped_column(ForeignKey("topics.topic_id"), nullable=True)
