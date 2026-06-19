@@ -123,3 +123,21 @@ async def get_user_messages(
     messages = result.scalars().all()
 
     return list(messages)
+
+
+async def get_topics(session: AsyncSession) -> list[Topic]:
+    stmt = select(Topic)
+
+    result: Result = await session.execute(stmt)
+    topics = result.scalars().all()
+
+    return list(topics)
+
+
+async def get_user(session: AsyncSession, user_id: int) -> User:
+    stmt = select(User).where(User.id == user_id)
+
+    result: Result = await session.execute(stmt)
+    user = result.scalar_one_or_none()
+
+    return user
