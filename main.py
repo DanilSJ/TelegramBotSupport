@@ -9,7 +9,7 @@ from aiogram.exceptions import (
     TelegramBadRequest,
 )
 from core.config import bot
-from app import start_router, echo_router
+from app import start_router, echo_router, admin_router
 from core.models import db_helper
 
 from services.clear_topic import delete_old_topics
@@ -32,6 +32,7 @@ async def delete_old_topics_task():
 
 async def main():
     dp.include_router(start_router)
+    dp.include_router(admin_router)
     dp.include_router(echo_router)
 
     # Запускаем фоновую задачу
