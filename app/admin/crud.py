@@ -1,8 +1,6 @@
-from typing import Optional
-from sqlalchemy.engine import Result
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, func
-from core.models import AI, User
+from sqlalchemy import select
+from core.models import AI, User, Message
 
 
 async def create_ai(
@@ -66,3 +64,40 @@ async def block_user(
     await session.refresh(user)
 
     return user
+
+
+async def update_ai_message(
+    session: AsyncSession,
+    message_id: int,
+    text: str,
+) -> Message | None:
+    stmt = select(Message).where(Message.id == message_id)
+    result = await session.execute(stmt)
+    message = result.scalar_one_or_none()
+
+    if not message:
+        return None
+
+    message.text = text
+
+    await session.commit()
+    await session.refresh(message)
+
+    return message
+
+
+async def delete_message(
+        session: AsyncSession,
+        message_id: int,
+) -> bool:
+    stmt = select(Message).where(Message.id == message_id)
+    result = await session.execute(stmt)
+    message = result.scalar_one_or_none()
+
+    if not message:
+        return False
+
+    await session.delete(message)
+    await session.commit()
+
+    return True
