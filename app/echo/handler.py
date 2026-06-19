@@ -36,10 +36,13 @@ async def echo(message: Message):
                 if message.message_thread_id == el.topic_id:
                     client_user = await get_user(session, el.user_id)
 
-                    await message.bot.send_message(
-                        client_user.telegram_id,
-                        message.text,
-                    )
+                    try:
+                        await message.bot.send_message(
+                            client_user.telegram_id,
+                            message.text,
+                        )
+                    except Exception as err:
+                        await message.answer(f"Произошла ошибка (Возможно человек заблокировал бота): {err}")
 
         if len(message.text) < 8:
             return await message.answer("Вопрос должен быть от 8 символов!!")
