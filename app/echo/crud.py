@@ -2,7 +2,7 @@ from typing import Optional
 from sqlalchemy.engine import Result
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
-from core.models import User
+from core.models import User, Topic
 
 
 async def create_user(
@@ -59,3 +59,27 @@ async def update_user_connect_topic(
     await session.refresh(user)
 
     return user
+
+
+async def create_topic(
+    session: AsyncSession,
+    name: str,
+    topic_id: int,
+) -> Topic:
+    stmt = select(Topic).where(Topic.topic_id == topic_id)
+    result = await session.execute(stmt)
+    topic = result.scalar_one_or_none()
+
+    if topic:
+        return topic
+
+    topic = Topic(
+        name=name,
+        topic_id=topic_id,
+    )
+
+    session.add(topic)
+    await session.commit()
+    await session.refresh(topic)
+
+    return topic
