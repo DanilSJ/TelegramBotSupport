@@ -88,11 +88,13 @@ async def create_topic(
 async def create_message(
     session: AsyncSession,
     user_id: int,
+    id_message: int,
     message: str,
     topic_id: int | None = None,
     ai_message: str | None = None,
 ) -> Message:
     message_obj = Message(
+        id_message=id_message,
         message=message,
         ai_message=ai_message,
         topic_id=topic_id,
