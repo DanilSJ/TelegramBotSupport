@@ -13,3 +13,5 @@ class User(Base):
 
     is_operator: Mapped[bool] = mapped_column(Boolean, default=False)
     is_admin: Mapped[bool] = mapped_column(Boolean, default=False)
+
+    is_block: Mapped[bool] = mapped_column(Boolean, default=False)
