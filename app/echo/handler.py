@@ -29,7 +29,7 @@ async def echo(message: Message):
             return await message.answer("Вопрос должен быть от 8 символов!!")
 
         if user.connect_operator:
-            await create_message(session, message.text, user.user_topic_id)
+            await create_message(session, user.id, message.text, user.user_topic_id)
 
             return await message.bot.send_message(
                 chat_id=settings.GROUP_ID_SUPPORT,
@@ -72,7 +72,9 @@ async def echo(message: Message):
                     f"Запрос от {message.from_user.full_name}",
                     topic.message_thread_id,
                 )
-                await create_message(session, message.text, topic.message_thread_id)
+                await create_message(
+                    session, user.id, message.text, topic.message_thread_id
+                )
 
                 return await message.answer(
                     "Ваш запрос передан оператору. Ожидайте ответа!"
@@ -86,4 +88,5 @@ async def echo(message: Message):
 
         ai = AI(message.text)
         result = await ai.send()
+        await create_message(session, user.id, message.text, result)
         return await message.answer(result)
