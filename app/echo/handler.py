@@ -42,7 +42,9 @@ async def echo(message: Message):
                             message.text,
                         )
                     except Exception as err:
-                        await message.answer(f"Произошла ошибка (Возможно человек заблокировал бота): {err}")
+                        await message.answer(
+                            f"Произошла ошибка (Возможно человек заблокировал бота): {err}"
+                        )
 
         if len(message.text) < 8:
             return await message.answer("Вопрос должен быть от 8 символов!!")
