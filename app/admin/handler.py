@@ -9,7 +9,14 @@ from aiogram.types import (
 from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import State, StatesGroup
 from core.models import db_helper
-from .crud import create_ai, update_ai_use, block_user
+from .crud import (
+    create_ai,
+    update_ai_use,
+    block_user,
+    get_user_messages,
+    update_ai_message,
+    delete_message,
+)
 
 router = Router()
 
@@ -21,6 +28,10 @@ class AdminStates(StatesGroup):
     waiting_for_api_key = State()
     waiting_for_system_prompt = State()
     waiting_for_ai_id = State()
+    waiting_for_user_messages = State()
+    waiting_for_message_action = State()
+    waiting_for_edit_message = State()
+    waiting_for_delete_message = State()
 
 
 def get_admin_keyboard() -> InlineKeyboardMarkup:
@@ -29,6 +40,12 @@ def get_admin_keyboard() -> InlineKeyboardMarkup:
             InlineKeyboardButton(
                 text="👤 Заблокировать/Разблокировать пользователя",
                 callback_data="admin_block_user",
+            )
+        ],
+        [
+            InlineKeyboardButton(
+                text="💬 Управление сообщениями пользователя",
+                callback_data="admin_user_messages",
             )
         ],
         [
@@ -94,6 +111,226 @@ async def admin_block_user_process(message: Message, state: FSMContext):
     await message.answer(
         "Выберите следующее действие:", reply_markup=get_admin_keyboard()
     )
+
+
+@router.callback_query(F.data == "admin_user_messages")
+async def admin_user_messages_start(callback: CallbackQuery, state: FSMContext):
+    await callback.message.edit_text(
+        "💬 Введите Telegram ID пользователя, чтобы просмотреть его сообщения:"
+    )
+    await state.set_state(AdminStates.waiting_for_user_messages)
+    await callback.answer()
+
+
+@router.message(AdminStates.waiting_for_user_messages)
+async def admin_user_messages_process(message: Message, state: FSMContext):
+    try:
+        telegram_id = int(message.text.strip())
+    except ValueError:
+        await message.answer("❌ Пожалуйста, введите корректный числовой ID:")
+        return
+
+    async with db_helper.scoped_session_dependency() as session:
+        messages = await get_user_messages(session, telegram_id, limit=20)
+
+        if not messages:
+            await message.answer(
+                "❌ У пользователя нет сообщений или пользователь не найден."
+            )
+            await state.clear()
+            return
+
+        await state.update_data(telegram_id=telegram_id, messages=messages)
+
+        text = f"📨 Последние сообщения пользователя (ID: {telegram_id}):\n\n"
+        for i, msg in enumerate(messages[:5], 1):
+            text += f"{i}. Сообщение: {msg.message[:50]}...\n"
+            text += f"   Ответ AI: {msg.ai_message[:50] if msg.ai_message else 'Нет ответа'}\n"
+            text += f"   ID: {msg.id}\n\n"
+
+        keyboard = InlineKeyboardMarkup(
+            inline_keyboard=[
+                [
+                    InlineKeyboardButton(
+                        text=f"📝 Редактировать сообщение #{i+1}",
+                        callback_data=f"edit_msg_{msg.id}",
+                    )
+                ]
+                for i, msg in enumerate(messages[:5])
+            ]
+            + [[InlineKeyboardButton(text="🔙 Назад", callback_data="admin_back")]]
+        )
+
+        await message.answer(text, reply_markup=keyboard)
+        await state.set_state(AdminStates.waiting_for_message_action)
+
+
+@router.callback_query(F.data.startswith("edit_msg_"))
+async def admin_edit_message_start(callback: CallbackQuery, state: FSMContext):
+    message_id = int(callback.data.split("_")[2])
+    await state.update_data(edit_message_id=message_id)
+
+    async with db_helper.scoped_session_dependency() as session:
+        from sqlalchemy import select
+        from core.models import Message
+
+        stmt = select(Message).where(Message.id == message_id)
+        result = await session.execute(stmt)
+        msg = result.scalar_one_or_none()
+
+        if not msg:
+            await callback.message.answer("❌ Сообщение не найдено")
+            return
+
+        await callback.message.edit_text(
+            f"📝 Редактирование сообщения:\n\n"
+            f"Текущий текст: {msg.message}\n"
+            f"Текущий ответ AI: {msg.ai_message if msg.ai_message else 'Нет ответа'}\n\n"
+            f"Введите новый текст для AI сообщения:"
+        )
+        await state.set_state(AdminStates.waiting_for_edit_message)
+        await callback.answer()
+
+
+@router.message(AdminStates.waiting_for_edit_message)
+async def admin_edit_message_process(message: Message, state: FSMContext):
+    data = await state.get_data()
+    message_id = data.get("edit_message_id")
+    telegram_id = data.get("telegram_id")
+
+    if not message_id:
+        await message.answer("❌ Ошибка: ID сообщения не найден")
+        await state.clear()
+        return
+
+    new_text = message.text.strip()
+
+    async with db_helper.scoped_session_dependency() as session:
+        updated_message = await update_ai_message(session, message_id, new_text)
+
+        if not updated_message:
+            await message.answer("❌ Сообщение не найдено")
+            await state.clear()
+            return
+
+        # Обновляем сообщение в Telegram
+        try:
+            # Получаем оригинальное сообщение из базы
+            from sqlalchemy import select
+            from core.models import Message as DBMessage
+
+            stmt = select(DBMessage).where(DBMessage.id == message_id)
+            result = await session.execute(stmt)
+            msg = result.scalar_one_or_none()
+
+            if msg and msg.id_message and telegram_id:
+                # Отправляем обновленное сообщение пользователю
+                await message.bot.edit_message_text(
+                    chat_id=telegram_id, message_id=msg.id_message, text=new_text
+                )
+                await message.answer(
+                    f"✅ Сообщение успешно обновлено!\n"
+                    f"Новый текст: {new_text[:100]}..."
+                )
+        except Exception as e:
+            await message.answer(
+                f"✅ Сообщение обновлено в БД, но не удалось обновить в чате: {str(e)}"
+            )
+
+    await state.clear()
+    await message.answer(
+        "Выберите следующее действие:", reply_markup=get_admin_keyboard()
+    )
+
+
+@router.callback_query(F.data.startswith("delete_msg_"))
+async def admin_delete_message_start(callback: CallbackQuery, state: FSMContext):
+    message_id = int(callback.data.split("_")[2])
+    await state.update_data(delete_message_id=message_id)
+
+    keyboard = InlineKeyboardMarkup(
+        inline_keyboard=[
+            [
+                InlineKeyboardButton(
+                    text="✅ Да, удалить", callback_data="confirm_delete"
+                ),
+                InlineKeyboardButton(text="❌ Отмена", callback_data="cancel_delete"),
+            ]
+        ]
+    )
+
+    await callback.message.edit_text(
+        "⚠️ Вы уверены, что хотите удалить это сообщение?\n"
+        "Это действие нельзя отменить!",
+        reply_markup=keyboard,
+    )
+    await callback.answer()
+
+
+@router.callback_query(F.data == "confirm_delete")
+async def admin_delete_message_confirm(callback: CallbackQuery, state: FSMContext):
+    data = await state.get_data()
+    message_id = data.get("delete_message_id")
+    telegram_id = data.get("telegram_id")
+
+    if not message_id:
+        await callback.message.answer("❌ Ошибка: ID сообщения не найден")
+        await state.clear()
+        return
+
+    async with db_helper.scoped_session_dependency() as session:
+        # Получаем сообщение перед удалением
+        from sqlalchemy import select
+        from core.models import Message as DBMessage
+
+        stmt = select(DBMessage).where(DBMessage.id == message_id)
+        result = await session.execute(stmt)
+        msg = result.scalar_one_or_none()
+
+        success = await delete_message(session, message_id)
+
+        if not success:
+            await callback.message.answer("❌ Сообщение не найдено")
+            await state.clear()
+            return
+
+        # Пытаемся удалить сообщение в Telegram
+        try:
+            if msg and msg.id_message and telegram_id:
+                await callback.bot.delete_message(
+                    chat_id=telegram_id, message_id=msg.id_message
+                )
+                await callback.message.edit_text(
+                    "✅ Сообщение успешно удалено из чата и БД!"
+                )
+        except Exception as e:
+            await callback.message.edit_text(
+                f"✅ Сообщение удалено из БД, но не удалось удалить из чата: {str(e)}"
+            )
+
+    await state.clear()
+    await callback.message.answer(
+        "Выберите следующее действие:", reply_markup=get_admin_keyboard()
+    )
+
+
+@router.callback_query(F.data == "cancel_delete")
+async def admin_delete_cancel(callback: CallbackQuery, state: FSMContext):
+    await state.clear()
+    await callback.message.edit_text("❌ Удаление отменено")
+    await callback.message.answer(
+        "Выберите следующее действие:", reply_markup=get_admin_keyboard()
+    )
+    await callback.answer()
+
+
+@router.callback_query(F.data == "admin_back")
+async def admin_back(callback: CallbackQuery):
+    await callback.message.edit_text(
+        "👋 Добро пожаловать в админ-панель!\nВыберите действие:",
+        reply_markup=get_admin_keyboard(),
+    )
+    await callback.answer()
 
 
 @router.callback_query(F.data == "admin_create_ai")
