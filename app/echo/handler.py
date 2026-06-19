@@ -4,7 +4,7 @@ from app.echo.crud import (
     get_operators,
     update_user_connect_topic,
     create_user,
-    create_topic,
+    create_topic, create_message,
 )
 from core.models import db_helper
 from services.ai import AI
@@ -66,6 +66,7 @@ async def echo(message: Message):
                     f"Запрос от {message.from_user.full_name}",
                     topic.message_thread_id,
                 )
+                await create_message(session, message.text, topic.message_thread_id)
 
                 return await message.answer(
                     "Ваш запрос передан оператору. Ожидайте ответа!"
