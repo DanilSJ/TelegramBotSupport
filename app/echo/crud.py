@@ -1,8 +1,8 @@
 from typing import Optional
 from sqlalchemy.engine import Result
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select
-from core.models import User, Topic, Message
+from sqlalchemy import select, func
+from core.models import User, Topic, Message, Phrase
 
 
 async def create_user(
@@ -143,3 +143,12 @@ async def get_user(session: AsyncSession, user_id: int) -> User:
     user = result.scalar_one_or_none()
 
     return user
+
+
+async def get_phrases(session: AsyncSession) -> list[str]:
+    stmt = select(func.lower(Phrase.phrase))
+
+    result: Result = await session.execute(stmt)
+    phrases = result.scalars().all()
+
+    return list(phrases)
