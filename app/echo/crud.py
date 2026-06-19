@@ -87,12 +87,16 @@ async def create_topic(
 
 async def create_message(
     session: AsyncSession,
+    user_id: int,
     message: str,
-    topic_id: int,
+    topic_id: int | None = None,
+    ai_message: str | None = None,
 ) -> Message:
     message_obj = Message(
         message=message,
+        ai_message=ai_message,
         topic_id=topic_id,
+        user_id=user_id,
     )
 
     session.add(message_obj)
