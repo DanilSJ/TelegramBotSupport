@@ -4,7 +4,8 @@ from app.echo.crud import (
     get_operators,
     update_user_connect_topic,
     create_user,
-    create_topic, create_message,
+    create_topic,
+    create_message,
 )
 from core.models import db_helper
 from services.ai import AI
