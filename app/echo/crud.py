@@ -107,9 +107,9 @@ async def create_message(
 
 
 async def get_user_messages(
-        session: AsyncSession,
-        user_id: int,
-        limit: int = 20,
+    session: AsyncSession,
+    user_id: int,
+    limit: int = 20,
 ) -> list[Message]:
     stmt = (
         select(Message)
