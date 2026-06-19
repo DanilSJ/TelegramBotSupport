@@ -8,7 +8,4 @@ class Message(Base):
 
     topic_id: Mapped[int] = mapped_column(ForeignKey("topics.id"))
 
-    topic: Mapped["Topic"] = relationship(
-        "Topic",
-        back_populates="messages"
-    )
+    topic: Mapped["Topic"] = relationship("Topic", back_populates="messages")
