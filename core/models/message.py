@@ -5,7 +5,8 @@ from .base import Base
 
 class Message(Base):
     message: Mapped[str] = mapped_column(Text)
+    ai_message: Mapped[str] = mapped_column(Text, nullable=True)
 
-    topic_id: Mapped[int] = mapped_column(ForeignKey("topics.topic_id"))
+    topic_id: Mapped[int] = mapped_column(ForeignKey("topics.topic_id"), nullable=True)
 
     topic: Mapped["Topic"] = relationship("Topic", back_populates="messages")
