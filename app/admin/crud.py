@@ -87,8 +87,8 @@ async def update_ai_message(
 
 
 async def delete_message(
-        session: AsyncSession,
-        message_id: int,
+    session: AsyncSession,
+    message_id: int,
 ) -> bool:
     stmt = select(Message).where(Message.id == message_id)
     result = await session.execute(stmt)
