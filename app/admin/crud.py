@@ -2,7 +2,7 @@ from typing import Optional
 from sqlalchemy.engine import Result
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, func
-from core.models import AI
+from core.models import AI, User
 
 
 async def create_ai(
@@ -44,3 +44,25 @@ async def update_ai_use(
     await session.refresh(ai_id)
 
     return ai
+
+
+async def block_user(
+    session: AsyncSession,
+    telegram_id: int,
+) -> User | None:
+    stmt = select(User).where(User.telegram_id == telegram_id)
+    result = await session.execute(stmt)
+    user = result.scalar_one_or_none()
+
+    if not user:
+        return None
+
+    if user.block:
+        user.block = False
+    else:
+        user.block = True
+
+    await session.commit()
+    await session.refresh(user)
+
+    return user
