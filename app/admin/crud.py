@@ -1,5 +1,5 @@
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, Result
+from sqlalchemy import select, Result, update
 from core.models import AI, User, Message
 
 
@@ -36,10 +36,13 @@ async def update_ai_use(
     if not ai:
         return None
 
+    await session.execute(select(AI).where(AI.use == True))
+    await session.execute(update(AI).where(AI.use == True).values(use=False))
+
     ai.use = True
 
     await session.commit()
-    await session.refresh(ai_id)
+    await session.refresh(ai)
 
     return ai
 
