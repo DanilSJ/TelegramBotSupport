@@ -17,3 +17,9 @@ class User(Base):
     is_block: Mapped[bool] = mapped_column(Boolean, default=False)
 
     messages: Mapped[list["Message"]] = relationship("Message", back_populates="user")
+
+    topic: Mapped["Topic"] = relationship(
+        "Topic",
+        back_populates="user",
+        uselist=False,
+    )
