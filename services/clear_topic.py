@@ -1,11 +1,13 @@
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, func
-from datetime import datetime, timedelta
 from core.models import Topic, Message
+from datetime import datetime, timezone, timedelta
+
+MSK = timezone(timedelta(hours=3))
 
 
 async def delete_old_topics(session: AsyncSession, days: int = 3) -> int:
-    cutoff_date = datetime.utcnow() - timedelta(days=days)
+    cutoff_date = lambda: datetime.now(MSK) - timedelta(days=days)
 
     subquery = (
         select(Message.topic_id, func.max(Message.create_at).label("last_message_date"))
