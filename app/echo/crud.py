@@ -2,7 +2,7 @@ from typing import Optional
 from sqlalchemy.engine import Result
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
-from core.models import User, Topic
+from core.models import User, Topic, Message
 
 
 async def create_user(
@@ -83,3 +83,20 @@ async def create_topic(
     await session.refresh(topic)
 
     return topic
+
+
+async def create_message(
+    session: AsyncSession,
+    message: str,
+    topic_id: int,
+) -> Message:
+    message_obj = Message(
+        message=message,
+        topic_id=topic_id,
+    )
+
+    session.add(message_obj)
+    await session.commit()
+    await session.refresh(message_obj)
+
+    return message_obj
