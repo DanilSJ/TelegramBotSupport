@@ -5,4 +5,4 @@ from .base import Base
 
 class Topic(Base):
     name: Mapped[str] = mapped_column(String)
-    topic_Id: Mapped[int] = mapped_column(BigInteger)
+    topic_id: Mapped[int] = mapped_column(BigInteger)
