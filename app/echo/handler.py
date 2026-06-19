@@ -22,6 +22,9 @@ async def echo(message: Message):
             session, message.from_user.id, message.from_user.username
         )
 
+        if user.is_block:
+            return False
+
         if len(message.text) < 8:
             return await message.answer("Вопрос должен быть от 8 символов!!")
 
