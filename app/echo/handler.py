@@ -1,22 +1,38 @@
 from aiogram import Router, F
 from aiogram.types import Message
-from app.echo.crud import get_operators, update_user_connect_topic
+from app.echo.crud import get_operators, update_user_connect_topic, create_user
 from core.models import db_helper
 from services.ai import AI
 import random
+from core.config import settings
 
 router = Router()
 
 
 @router.message(F.text)
 async def echo(message: Message):
-    if len(message.text) < 8:
-        return await message.answer("Вопрос должен быть от 8 символов!!")
+    async with db_helper.scoped_session_dependency() as session:
+        user = await create_user(
+            session, message.from_user.id, message.from_user.username
+        )
 
-    operator_phrases = ["позови оператора", "нужен человек", "соедините с менеджером"]
+        if len(message.text) < 8:
+            return await message.answer("Вопрос должен быть от 8 символов!!")
 
-    if message.text.lower() in operator_phrases:
-        async with db_helper.scoped_session_dependency() as session:
+        if user.connect_operator:
+            return await message.bot.send_message(
+                chat_id=settings.GROUP_ID_SUPPORT,
+                text=message.text,
+                message_thread_id=user.user_topic_id,
+            )
+
+        operator_phrases = [
+            "позови оператора",
+            "нужен человек",
+            "соедините с менеджером",
+        ]
+
+        if message.text.lower() in operator_phrases:
             operators = await get_operators(session)
 
             if not operators:
@@ -28,12 +44,13 @@ async def echo(message: Message):
 
             try:
                 topic = await message.bot.create_forum_topic(
-                    chat_id=22222, name=f"Запрос от {message.from_user.full_name}"
+                    chat_id=settings.GROUP_ID_SUPPORT,
+                    name=f"Запрос от {message.from_user.full_name}",
                 )
 
                 await message.bot.send_message(
-                    chat_id=2222,
-                    text=f"Новый запрос от пользователя {message.from_user.full_name}",
+                    chat_id=settings.GROUP_ID_SUPPORT,
+                    text=f"Новое сообщение от пользователя: {message.text}",
                     message_thread_id=topic.message_thread_id,
                 )
                 await update_user_connect_topic(
@@ -50,6 +67,6 @@ async def echo(message: Message):
                     "Произошла ошибка при соединении с оператором. Попробуйте позже."
                 )
 
-    ai = AI(message.text)
-    result = await ai.send()
-    return await message.answer(result)
+        ai = AI(message.text)
+        result = await ai.send()
+        return await message.answer(result)
