@@ -7,6 +7,8 @@ from app.echo.crud import (
     create_topic,
     create_message,
     get_user_messages,
+    get_topics,
+    get_user,
 )
 from core.models import db_helper
 from services.ai import AI
@@ -25,6 +27,18 @@ async def echo(message: Message):
 
         if user.is_block:
             return False
+
+        # Operator send message
+        if user.is_operator:
+            topics = await get_topics(session)
+            for el in topics:
+                if message.message_thread_id == el.topic_id:
+                    client_user = await get_user(session, el.user_id)
+
+                    await message.bot.send_message(
+                        client_user.telegram_id,
+                        message.text,
+                    )
 
         if len(message.text) < 8:
             return await message.answer("Вопрос должен быть от 8 символов!!")
