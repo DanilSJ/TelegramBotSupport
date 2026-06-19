@@ -8,11 +8,8 @@ from aiogram.exceptions import (
     TelegramNotFound,
     TelegramBadRequest,
 )
-from aiogram import Bot
-from core.config import settings
+from core.config import bot
 from app import start_router, echo_router
-
-bot = Bot(token=settings.BOT_TOKEN)
 
 dp = Dispatcher()
 
