@@ -9,4 +9,7 @@ class Message(Base):
 
     topic_id: Mapped[int] = mapped_column(ForeignKey("topics.topic_id"), nullable=True)
 
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id"), nullable=False)
+
     topic: Mapped["Topic"] = relationship("Topic", back_populates="messages")
+    user: Mapped["User"] = relationship("User", back_populates="messages")

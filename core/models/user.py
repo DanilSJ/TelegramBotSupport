@@ -1,5 +1,5 @@
 from sqlalchemy import String, BigInteger, Boolean
-from sqlalchemy.orm import Mapped, mapped_column
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 from .base import Base
 
 
@@ -15,3 +15,5 @@ class User(Base):
     is_admin: Mapped[bool] = mapped_column(Boolean, default=False)
 
     is_block: Mapped[bool] = mapped_column(Boolean, default=False)
+
+    messages: Mapped[list["Message"]] = relationship("Message", back_populates="user")
