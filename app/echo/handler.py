@@ -9,6 +9,7 @@ from app.echo.crud import (
     get_user_messages,
     get_topics,
     get_user,
+    get_phrases,
 )
 from core.models import db_helper
 from services.ai import AI
@@ -54,11 +55,7 @@ async def echo(message: Message):
                 message_thread_id=user.user_topic_id,
             )
 
-        operator_phrases = [
-            "позови оператора",
-            "нужен человек",
-            "соедините с менеджером",
-        ]
+        operator_phrases = await get_phrases(session)
 
         if message.text.lower() in operator_phrases:
             operators = await get_operators(session)
