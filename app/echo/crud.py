@@ -24,6 +24,7 @@ async def update_user_connect_topic(
         return None
 
     user.user_topic_id = topic_id
+    user.connect_operator = True
 
     await session.commit()
     await session.refresh(user)
