@@ -13,6 +13,7 @@ from core.config import settings
 
 from contextlib import asynccontextmanager
 
+
 class DatabaseHelper:
     def __init__(self, url: str, echo: bool = False, pool=AsyncAdaptedQueuePool):
         if settings.DB_POOL_NULL:
