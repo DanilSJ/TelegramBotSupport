@@ -34,7 +34,8 @@ async def echo(message: Message):
             topics = await get_topics(session)
             print(topics)
             for el in topics:
-                print(el.id)
+                print(message.message_thread_id)
+                print(el.topic_id)
                 if message.message_thread_id == el.topic_id:
                     client_user = await get_user(session, el.user_id)
                     try:
