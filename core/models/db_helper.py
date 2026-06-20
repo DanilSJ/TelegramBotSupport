@@ -11,6 +11,8 @@ from sqlalchemy.ext.asyncio import (
 from core.config import settings
 
 
+from contextlib import asynccontextmanager
+
 class DatabaseHelper:
     def __init__(self, url: str, echo: bool = False, pool=AsyncAdaptedQueuePool):
         if settings.DB_POOL_NULL:
@@ -36,12 +38,13 @@ class DatabaseHelper:
             scopefunc=current_task,
         )
 
+    @asynccontextmanager
     async def session_dependency(self) -> AsyncSession:
         """Обычная сессия с автоматическим закрытием"""
         async with self.session_factory() as session:
             yield session
-            # Сессия автоматически закроется при выходе из контекста
 
+    @asynccontextmanager
     async def scoped_session_dependency(self) -> AsyncSession:
         """Scoped сессия с автоматическим закрытием"""
         scoped_session = self.get_scoped_session()
