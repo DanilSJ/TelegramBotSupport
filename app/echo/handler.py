@@ -201,4 +201,4 @@ async def echo(message: Message):
                 message=message.text,
                 ai_message=result,
             )
-            return await message.answer(result)
+            return await message.answer(result, parse_mode="Markdown")
