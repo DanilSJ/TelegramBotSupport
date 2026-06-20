@@ -37,6 +37,7 @@ class AdminStates(StatesGroup):
     waiting_for_delete_message = State()
     waiting_for_start_text = State()
     waiting_for_start_status = State()
+    waiting_for_operator_telegram_id = State()
 
 
 def get_admin_keyboard() -> InlineKeyboardMarkup:
@@ -45,6 +46,12 @@ def get_admin_keyboard() -> InlineKeyboardMarkup:
             InlineKeyboardButton(
                 text="👤 Заблокировать/Разблокировать пользователя",
                 callback_data="admin_block_user",
+            )
+        ],
+        [
+            InlineKeyboardButton(
+                text="👨‍💼 Управление операторами",
+                callback_data="admin_manage_operators",
             )
         ],
         [
@@ -641,6 +648,155 @@ async def admin_view_start_text(callback: CallbackQuery):
             f"📌 Создан: {start_text.create_at.strftime('%d.%m.%Y %H:%M') if start_text.create_at else 'Неизвестно'}\n",
             reply_markup=keyboard,
         )
+        await callback.answer()
+
+
+@router.callback_query(F.data == "admin_manage_operators")
+async def admin_manage_operators(callback: CallbackQuery, state: FSMContext):
+    """Меню управления операторами"""
+    keyboard = InlineKeyboardMarkup(
+        inline_keyboard=[
+            [
+                InlineKeyboardButton(
+                    text="➕ Добавить оператора",
+                    callback_data="admin_add_operator",
+                )
+            ],
+            [
+                InlineKeyboardButton(
+                    text="➖ Удалить оператора",
+                    callback_data="admin_remove_operator",
+                )
+            ],
+            [
+                InlineKeyboardButton(
+                    text="📋 Список операторов",
+                    callback_data="admin_list_operators",
+                )
+            ],
+            [InlineKeyboardButton(text="🔙 Назад", callback_data="admin_back")],
+        ]
+    )
+
+    await callback.message.edit_text(
+        "👨‍💼 Управление операторами\n\n"
+        "Операторы имеют доступ к админ-панели, но не могут управлять AI моделями.\n\n"
+        "Выберите действие:",
+        reply_markup=keyboard,
+    )
+    await callback.answer()
+
+
+@router.callback_query(F.data == "admin_add_operator")
+async def admin_add_operator_start(callback: CallbackQuery, state: FSMContext):
+    """Начало процесса добавления оператора"""
+    await callback.message.edit_text(
+        "➕ Добавление оператора\n\n"
+        "Введите Telegram ID пользователя, которого хотите сделать оператором:"
+    )
+    await state.set_state(AdminStates.waiting_for_operator_telegram_id)
+    await state.update_data(action="add")
+    await callback.answer()
+
+
+@router.message(AdminStates.waiting_for_operator_telegram_id)
+async def admin_operator_process(message: Message, state: FSMContext):
+    """Обработка ввода Telegram ID для оператора"""
+    try:
+        telegram_id = int(message.text.strip())
+    except ValueError:
+        await message.answer("❌ Пожалуйста, введите корректный числовой ID:")
+        return
+
+    data = await state.get_data()
+    action = data.get("action")
+
+    async with db_helper.scoped_session_dependency() as session:
+        from .crud import make_user_operator
+
+        user = await make_user_operator(session, telegram_id)
+
+        if not user:
+            await message.answer(
+                "❌ Пользователь с таким Telegram ID не найден.\n"
+                "Попробуйте снова или напишите /admin для выхода."
+            )
+            await state.clear()
+            return
+
+        action_text = "добавлен" if user.is_operator else "удален"
+
+        await message.answer(
+            f"✅ Пользователь {user.username or telegram_id} успешно {action_text}!\n"
+            f"👤 ID: {user.telegram_id}\n"
+            f"👨‍💼 Статус оператора: {'✅ Да' if user.is_operator else '❌ Нет'}\n"
+            f"👑 Админ: {'✅ Да' if user.is_admin else '❌ Нет'}"
+        )
+
+    await state.clear()
+    await message.answer(
+        "Выберите следующее действие:", reply_markup=get_admin_keyboard()
+    )
+
+
+@router.callback_query(F.data == "admin_remove_operator")
+async def admin_remove_operator_start(callback: CallbackQuery, state: FSMContext):
+    """Начало процесса удаления оператора"""
+    await callback.message.edit_text(
+        "➖ Удаление оператора\n\n"
+        "Введите Telegram ID пользователя, которого хотите удалить из операторов:"
+    )
+    await state.set_state(AdminStates.waiting_for_operator_telegram_id)
+    await state.update_data(action="remove")
+    await callback.answer()
+
+
+@router.callback_query(F.data == "admin_list_operators")
+async def admin_list_operators(callback: CallbackQuery):
+    """Показывает список всех операторов"""
+    async with db_helper.scoped_session_dependency() as session:
+        from sqlalchemy import select
+        from core.models import User
+
+        stmt = select(User).where(User.is_operator == True)
+        result = await session.execute(stmt)
+        operators = result.scalars().all()
+
+        if not operators:
+            await callback.message.edit_text(
+                "📋 Список операторов\n\n"
+                "❌ Операторы не найдены.\n\n"
+                "Чтобы добавить оператора, используйте кнопку 'Добавить оператора'.",
+                reply_markup=InlineKeyboardMarkup(
+                    inline_keyboard=[
+                        [
+                            InlineKeyboardButton(
+                                text="🔙 Назад", callback_data="admin_manage_operators"
+                            )
+                        ]
+                    ]
+                ),
+            )
+            await callback.answer()
+            return
+
+        text = "📋 Список операторов:\n\n"
+        for i, operator in enumerate(operators, 1):
+            text += f"{i}. 👤 {operator.username or 'Без имени'}\n"
+            text += f"   🆔 ID: {operator.telegram_id}\n"
+            text += f"   👑 Админ: {'✅' if operator.is_admin else '❌'}\n\n"
+
+        keyboard = InlineKeyboardMarkup(
+            inline_keyboard=[
+                [
+                    InlineKeyboardButton(
+                        text="🔙 Назад", callback_data="admin_manage_operators"
+                    )
+                ]
+            ]
+        )
+
+        await callback.message.edit_text(text, reply_markup=keyboard)
         await callback.answer()
 
 
