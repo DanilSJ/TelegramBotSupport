@@ -8,7 +8,7 @@ from app.echo.crud import (
     get_user_messages,
     get_topics,
     get_user,
-    get_phrases,
+    get_phrases, update_user_disconnect_topic,
 )
 from core.models import db_helper
 from services.ai import AI
@@ -57,11 +57,15 @@ async def echo(message: Message):
                 topic_id=user.user_topic_id,
             )
 
-            return await message.bot.send_message(
-                chat_id=settings.GROUP_ID_SUPPORT,
-                text=message.text,
-                message_thread_id=user.user_topic_id,
-            )
+            try:
+                return await message.bot.send_message(
+                    chat_id=settings.GROUP_ID_SUPPORT,
+                    text=message.text,
+                    message_thread_id=user.user_topic_id,
+                )
+            except Exception as err:
+                await update_user_disconnect_topic(session, user.id)
+                return await message.answer("Оператор закрыл диалог с вами")
 
         operator_phrases = await get_phrases(session)
 

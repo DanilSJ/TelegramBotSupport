@@ -60,6 +60,24 @@ async def update_user_connect_topic(
 
     return user
 
+async def update_user_disconnect_topic(
+    session: AsyncSession, user_id: int
+) -> User | None:
+    stmt = select(User).where(User.id == user_id)
+    result = await session.execute(stmt)
+    user = result.scalar_one_or_none()
+
+    if not user:
+        return None
+
+    user.user_topic_id = None
+    user.connect_operator = False
+
+    await session.commit()
+    await session.refresh(user)
+
+    return user
+
 
 async def create_topic(
     session: AsyncSession,
