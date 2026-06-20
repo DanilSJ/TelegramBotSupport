@@ -21,6 +21,6 @@ async def cmd_start(message: Message, state: FSMContext):
             return False
 
         text = await get_start_text(session)
-        if not text:
+        if not text or not text.is_use:
             return await message.answer("Админ не задал текст для /start")
         return await message.answer(text.text, parse_mode="Markdown")
