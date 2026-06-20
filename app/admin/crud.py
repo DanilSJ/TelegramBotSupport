@@ -1,6 +1,6 @@
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, Result, update
-from core.models import AI, User, Message
+from core.models import AI, User, Message, Start
 
 
 async def create_ai(
@@ -129,3 +129,28 @@ async def get_user_messages(
     messages = result.scalars().all()
 
     return list(messages)
+
+
+async def create_or_update_start(
+    session: AsyncSession,
+    text: str,
+    is_use: bool = False,
+) -> Start:
+    stmt = select(Start)
+    result = await session.execute(stmt)
+    start = result.scalar_one_or_none()
+
+    if start:
+        start.text = text
+        start.is_use = is_use
+    else:
+        start = Start(
+            text=text,
+            is_use=is_use,
+        )
+        session.add(start)
+
+    await session.commit()
+    await session.refresh(start)
+
+    return start
