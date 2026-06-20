@@ -186,18 +186,19 @@ async def echo(message: Message):
                     "Произошла ошибка при соединении с оператором. Попробуйте позже."
                 )
 
-        ai = AI(message.text)
-        result = await ai.send()
-        if not result:
-            return await message.answer(
-                "Ошибка не удалось авторизоваться в ИИ(возможно закончились деньги на балансе или удален токен)"
-            )
+        if message.text:
+            ai = AI(message.text)
+            result = await ai.send()
+            if not result:
+                return await message.answer(
+                    "Ошибка не удалось авторизоваться в ИИ(возможно закончились деньги на балансе или удален токен)"
+                )
 
-        await create_message(
-            session=session,
-            user_id=user.id,
-            id_message=message.message_id,
-            message=message.text,
-            ai_message=result,
-        )
-        return await message.answer(result)
+            await create_message(
+                session=session,
+                user_id=user.id,
+                id_message=message.message_id,
+                message=message.text,
+                ai_message=result,
+            )
+            return await message.answer(result)
