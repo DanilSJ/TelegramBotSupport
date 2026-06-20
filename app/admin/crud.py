@@ -154,3 +154,22 @@ async def create_or_update_start(
     await session.refresh(start)
 
     return start
+
+
+async def make_user_operator(
+    session: AsyncSession,
+    telegram_id: int,
+) -> User | None:
+    stmt = select(User).where(User.telegram_id == telegram_id)
+    result = await session.execute(stmt)
+    user = result.scalar_one_or_none()
+
+    if not user:
+        return None
+
+    user.is_operator = not user.is_operator
+
+    await session.commit()
+    await session.refresh(user)
+
+    return user
