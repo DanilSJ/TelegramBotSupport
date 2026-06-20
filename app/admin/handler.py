@@ -448,6 +448,15 @@ async def admin_manage_start(callback: CallbackQuery, state: FSMContext):
     async with db_helper.scoped_session_dependency() as session:
         start_text = await get_start_text(session)
 
+        if not start_text:
+            start_text = await create_or_update_start(
+                session,
+                text="👋 Привет! Я бот для общения с AI.\n\n"
+                "Используй /start для начала работы.\n"
+                "Отправь любое сообщение, чтобы начать диалог.",
+                is_use=True,
+            )
+
         keyboard = InlineKeyboardMarkup(
             inline_keyboard=[
                 [
