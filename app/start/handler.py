@@ -19,4 +19,6 @@ async def cmd_start(message: Message):
             return False
 
         text = await get_start_text(session)
-        await message.answer(text.text)
+        if not text:
+            return await message.answer("Админ не задал текст для /start")
+        return await message.answer(text.text)
