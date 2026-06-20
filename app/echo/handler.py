@@ -34,8 +34,6 @@ async def echo(message: Message):
             for el in topics:
                 if message.message_thread_id == el.topic_id:
                     client_user = await get_user(session, el.user_id)
-                    print(client_user)
-                    print(el.user_id)
                     try:
                         return await message.bot.send_message(
                             client_user.telegram_id,

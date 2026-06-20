@@ -1,5 +1,6 @@
 from aiogram import Router
 from aiogram.filters import CommandStart
+from aiogram.fsm.context import FSMContext
 from aiogram.types import Message
 from app.echo.crud import create_user
 from app.start.crud import get_start_text
@@ -9,7 +10,8 @@ router = Router()
 
 
 @router.message(CommandStart())
-async def cmd_start(message: Message):
+async def cmd_start(message: Message, state: FSMContext):
+    await state.clear()
     async with db_helper.scoped_session_dependency() as session:
         user = await create_user(
             session, message.from_user.id, message.from_user.username
