@@ -1,7 +1,6 @@
 from aiogram import Router, F
 from aiogram.types import Message
 from app.echo.crud import (
-    get_operators,
     update_user_connect_topic,
     create_user,
     create_topic,
@@ -13,7 +12,6 @@ from app.echo.crud import (
 )
 from core.models import db_helper
 from services.ai import AI
-import random
 from core.config import settings
 
 router = Router()
@@ -67,15 +65,6 @@ async def echo(message: Message):
         operator_phrases = await get_phrases(session)
 
         if message.text.lower() in operator_phrases:
-            operators = await get_operators(session)
-
-            if not operators:
-                return await message.answer(
-                    "К сожалению, сейчас нет свободных операторов. Пожалуйста, подождите или оставьте сообщение."
-                )
-
-            operator = random.choice(operators)
-
             try:
                 topic = await message.bot.create_forum_topic(
                     chat_id=settings.GROUP_ID_SUPPORT,
