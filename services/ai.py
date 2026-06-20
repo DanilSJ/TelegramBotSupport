@@ -5,12 +5,12 @@ from services.crud import get_ai_use
 
 class AI:
     def __init__(self, prompt: str):
-        self.session = db_helper.scoped_session_dependency
         self.prompt: str = prompt
 
     async def send(self):
         try:
-            ai = await get_ai_use(self.session)
+            async with db_helper.scoped_session_dependency() as session:
+                ai = await get_ai_use(session)
 
             client = AsyncClient(
                 api_key=ai.api_key,
