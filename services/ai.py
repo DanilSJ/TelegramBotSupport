@@ -1,5 +1,7 @@
 from openai import AsyncClient
 from openai import AuthenticationError
+
+from core.config import settings
 from core.models import db_helper
 from services.crud import get_ai_use
 
@@ -13,12 +15,9 @@ class AI:
             async with db_helper.scoped_session_dependency() as session:
                 ai = await get_ai_use(session)
 
-            clean_base_url = ai.base_url.replace('\n', '').strip() if ai.base_url else None
-            clean_api_key = ai.api_key.replace('\n', '').strip() if ai.api_key else None
-
             client = AsyncClient(
-                api_key=clean_api_key,
-                base_url=clean_base_url,
+                api_key=settings.AI_TOKEN,
+                base_url=settings.BASE_URL,
             )
 
             try:
