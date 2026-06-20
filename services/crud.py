@@ -11,6 +11,6 @@ async def get_ai_use(session: AsyncSession) -> AI:
     ai = result.scalar_one_or_none()
 
     if not ai:
-        raise "Not use AI"
+        raise ValueError("Not use AI")
 
     return ai
