@@ -57,11 +57,13 @@ async def echo(message: Message):
             )
 
             try:
-                return await message.bot.send_message(
+                return await message.bot.forward_message(
                     chat_id=settings.GROUP_ID_SUPPORT,
-                    text=message.text,
+                    message_id=message.message_id,
                     message_thread_id=user.user_topic_id,
+                    from_chat_id=message.chat.id,
                 )
+
             except Exception as err:
                 await update_user_disconnect_topic(session, user.id)
                 return await message.answer("Оператор закрыл диалог с вами")
