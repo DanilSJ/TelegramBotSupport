@@ -51,7 +51,11 @@ async def echo(message: Message):
 
         if user.connect_operator:
             await create_message(
-                session, user.id, message.message_id, message.text, user.user_topic_id
+                session=session,
+                user_id=user.id,
+                id_message=message.message_id,
+                message=message.text,
+                topic_id=user.user_topic_id,
             )
 
             return await message.bot.send_message(
@@ -99,11 +103,11 @@ async def echo(message: Message):
                     topic.message_thread_id,
                 )
                 await create_message(
-                    session,
-                    user.id,
-                    message.message_id,
-                    message.text,
-                    topic.message_thread_id,
+                    session=session,
+                    user_id=user.id,
+                    id_message=message.message_id,
+                    message=message.text,
+                    topic_id=topic.message_thread_id,
                 )
 
                 return await message.answer(
@@ -118,5 +122,16 @@ async def echo(message: Message):
 
         ai = AI(message.text)
         result = await ai.send()
-        await create_message(session, user.id, message.message_id, message.text, result)
+        if not result:
+            return await message.answer(
+                "Ошибка не удалось авторизоваться в ИИ(возможно закончились деньги на балансе или удален токен)"
+            )
+
+        await create_message(
+            session=session,
+            user_id=user.id,
+            id_message=message.message_id,
+            message=message.text,
+            ai_message=result,
+        )
         return await message.answer(result)
