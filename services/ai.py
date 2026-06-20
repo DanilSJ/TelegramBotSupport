@@ -16,8 +16,8 @@ class AI:
                 ai = await get_ai_use(session)
 
             client = AsyncClient(
-                api_key=settings.AI_TOKEN,
-                base_url=settings.BASE_URL,
+                api_key=ai.api_key,
+                base_url=ai.base_url,
             )
 
             try:
