@@ -81,10 +81,10 @@ async def update_user_disconnect_topic(
 
 
 async def create_topic(
-        session: AsyncSession,
-        name: str,
-        topic_id: int,
-        user_id: int,
+    session: AsyncSession,
+    name: str,
+    topic_id: int,
+    user_id: int,
 ) -> Topic:
     stmt = select(Topic).where(Topic.user_id == user_id)
     result = await session.execute(stmt)
@@ -115,6 +115,7 @@ async def create_topic(
     await session.refresh(topic)
 
     return topic
+
 
 async def create_message(
     session: AsyncSession,
