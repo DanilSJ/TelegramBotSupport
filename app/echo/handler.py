@@ -49,14 +49,22 @@ async def echo(message: Message):
                 return await message.answer("Вопрос должен быть от 8 символов!!")
 
         if user.connect_operator:
-            await create_message(
-                session=session,
-                user_id=user.id,
-                id_message=message.message_id,
-                message=message.text,
-                topic_id=user.user_topic_id,
-            )
-
+            if message.text:
+                await create_message(
+                    session=session,
+                    user_id=user.id,
+                    id_message=message.message_id,
+                    message=message.text,
+                    topic_id=user.user_topic_id,
+                )
+            else:
+                await create_message(
+                    session=session,
+                    user_id=user.id,
+                    id_message=message.message_id,
+                    message="Media content",
+                    topic_id=user.user_topic_id,
+                )
             try:
                 print("dwwddwwdwddw")
                 return await message.bot.forward_message(
