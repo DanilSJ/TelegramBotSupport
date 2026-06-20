@@ -13,9 +13,11 @@ class AI:
             async with db_helper.scoped_session_dependency() as session:
                 ai = await get_ai_use(session)
 
+            clean_base_url = ai.base_url.strip() if ai.base_url else None
+
             client = AsyncClient(
                 api_key=ai.api_key,
-                base_url=ai.base_url,
+                base_url=clean_base_url,
             )
 
             try:
