@@ -18,6 +18,7 @@ from .crud import (
     delete_message,
     create_or_update_start,
 )
+from ..echo.crud import create_user
 from ..start.crud import get_start_text
 
 router = Router()
@@ -69,11 +70,17 @@ def get_admin_keyboard() -> InlineKeyboardMarkup:
 
 
 @router.message(Command("admin"))
-async def cmd_admin(message: Message):
-    await message.answer(
-        "👋 Добро пожаловать в админ-панель!\nВыберите действие:",
-        reply_markup=get_admin_keyboard(),
-    )
+async def cmd_admin(message: Message, state: FSMContext):
+    await state.clear()
+    async with db_helper.scoped_session_dependency() as session:
+        user = await create_user(
+            session, message.from_user.id, message.from_user.username
+        )
+        if user.is_admin:
+            return await message.answer(
+                "👋 Добро пожаловать в админ-панель!\nВыберите действие:",
+                reply_markup=get_admin_keyboard(),
+            )
 
 
 @router.callback_query(F.data == "admin_close")
