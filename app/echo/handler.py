@@ -33,14 +33,14 @@ async def echo(message: Message):
             for el in topics:
                 if message.message_thread_id == el.topic_id:
                     client_user = await get_user(session, el.user_id)
-
+                    print(client_user)
                     try:
-                        await message.bot.send_message(
+                        return await message.bot.send_message(
                             client_user.telegram_id,
                             message.text,
                         )
                     except Exception as err:
-                        await message.answer(
+                        return await message.answer(
                             f"Произошла ошибка (Возможно человек заблокировал бота): {err}"
                         )
 
