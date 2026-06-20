@@ -48,87 +48,25 @@ async def echo(message: Message):
             return await message.answer("Вопрос должен быть от 8 символов!!")
 
         if user.connect_operator:
-            # Сохраняем сообщение в базу
             await create_message(
                 session=session,
                 user_id=user.id,
                 id_message=message.message_id,
-                message=message.text or "Медиа-сообщение",
+                message=message.text,
                 topic_id=user.user_topic_id,
             )
 
             try:
-                if message.video:
-                    return await message.bot.send_video(
-                        chat_id=settings.GROUP_ID_SUPPORT,
-                        video=message.video.file_id,
-                        caption=message.caption,
-                        message_thread_id=user.user_topic_id,
-                    )
-                elif message.photo:
-                    photo = message.photo[-1]
-                    return await message.bot.send_photo(
-                        chat_id=settings.GROUP_ID_SUPPORT,
-                        photo=photo.file_id,
-                        caption=message.caption,
-                        message_thread_id=user.user_topic_id,
-                    )
-                elif message.audio:
-                    return await message.bot.send_audio(
-                        chat_id=settings.GROUP_ID_SUPPORT,
-                        audio=message.audio.file_id,
-                        caption=message.caption,
-                        message_thread_id=user.user_topic_id,
-                    )
-                elif message.document:
-                    return await message.bot.send_document(
-                        chat_id=settings.GROUP_ID_SUPPORT,
-                        document=message.document.file_id,
-                        caption=message.caption,
-                        message_thread_id=user.user_topic_id,
-                    )
-                elif message.sticker:
-                    return await message.bot.send_sticker(
-                        chat_id=settings.GROUP_ID_SUPPORT,
-                        sticker=message.sticker.file_id,
-                        message_thread_id=user.user_topic_id,
-                    )
-                elif message.voice:
-                    return await message.bot.send_voice(
-                        chat_id=settings.GROUP_ID_SUPPORT,
-                        voice=message.voice.file_id,
-                        caption=message.caption,
-                        message_thread_id=user.user_topic_id,
-                    )
-                elif message.video_note:
-                    return await message.bot.send_video_note(
-                        chat_id=settings.GROUP_ID_SUPPORT,
-                        video_note=message.video_note.file_id,
-                        message_thread_id=user.user_topic_id,
-                    )
-                elif message.animation:
-                    return await message.bot.send_animation(
-                        chat_id=settings.GROUP_ID_SUPPORT,
-                        animation=message.animation.file_id,
-                        caption=message.caption,
-                        message_thread_id=user.user_topic_id,
-                    )
-                elif message.text:
-                    return await message.bot.send_message(
-                        chat_id=settings.GROUP_ID_SUPPORT,
-                        text=message.text,
-                        message_thread_id=user.user_topic_id,
-                    )
-                else:
-                    return await message.bot.send_message(
-                        chat_id=settings.GROUP_ID_SUPPORT,
-                        text="Неизвестный тип сообщения",
-                        message_thread_id=user.user_topic_id,
-                    )
-
+                print("dwwddwwdwddw")
+                return await message.bot.send_message(
+                    chat_id=settings.GROUP_ID_SUPPORT,
+                    text=message.text,
+                    message_thread_id=user.user_topic_id,
+                )
             except Exception as err:
                 await update_user_disconnect_topic(session, user.id)
                 return await message.answer("Оператор закрыл диалог с вами")
+
         operator_phrases = await get_phrases(session)
 
         if message.text.lower() in operator_phrases:
