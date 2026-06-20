@@ -60,6 +60,7 @@ async def update_user_connect_topic(
 
     return user
 
+
 async def update_user_disconnect_topic(
     session: AsyncSession, user_id: int
 ) -> User | None:

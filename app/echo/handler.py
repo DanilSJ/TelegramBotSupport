@@ -8,7 +8,8 @@ from app.echo.crud import (
     get_user_messages,
     get_topics,
     get_user,
-    get_phrases, update_user_disconnect_topic,
+    get_phrases,
+    update_user_disconnect_topic,
 )
 from core.models import db_helper
 from services.ai import AI
