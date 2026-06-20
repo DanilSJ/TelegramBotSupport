@@ -65,6 +65,7 @@ async def create_topic(
     session: AsyncSession,
     name: str,
     topic_id: int,
+    user_id: int,
 ) -> Topic:
     stmt = select(Topic).where(Topic.topic_id == topic_id)
     result = await session.execute(stmt)
@@ -76,6 +77,7 @@ async def create_topic(
     topic = Topic(
         name=name,
         topic_id=topic_id,
+        user_id=user_id,
     )
 
     session.add(topic)

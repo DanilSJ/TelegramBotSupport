@@ -91,6 +91,7 @@ async def echo(message: Message):
                     session,
                     f"Запрос от {message.from_user.full_name}",
                     topic.message_thread_id,
+                    user.id,
                 )
                 await create_message(
                     session=session,
