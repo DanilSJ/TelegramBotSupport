@@ -174,6 +174,7 @@ async def make_user_operator(
 
     return user
 
+
 async def create_phrase(
     session: AsyncSession,
     text: str,
@@ -187,6 +188,7 @@ async def create_phrase(
     await session.refresh(phrase)
 
     return phrase
+
 
 async def delete_phrase(
     session: AsyncSession,
