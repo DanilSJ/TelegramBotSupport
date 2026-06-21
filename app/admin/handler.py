@@ -17,9 +17,12 @@ from .crud import (
     update_ai_message,
     delete_message,
     create_or_update_start,
+    get_phrases,
+    create_phrase,
+    delete_phrase,
 )
-from ..echo.crud import create_user
-from ..start.crud import get_start_text
+from app.echo.crud import create_user
+from app.start.crud import get_start_text
 
 router = Router()
 
@@ -38,6 +41,8 @@ class AdminStates(StatesGroup):
     waiting_for_start_text = State()
     waiting_for_start_status = State()
     waiting_for_operator_telegram_id = State()
+    waiting_for_phrase_text = State()
+    waiting_for_phrase_delete_id = State()
 
 
 def get_admin_keyboard() -> InlineKeyboardMarkup:
@@ -69,6 +74,11 @@ def get_admin_keyboard() -> InlineKeyboardMarkup:
         [
             InlineKeyboardButton(
                 text="📝 Управление /start текстом", callback_data="admin_manage_start"
+            )
+        ],
+        [
+            InlineKeyboardButton(
+                text="📚 Управление фразами", callback_data="admin_manage_phrases"
             )
         ],
         [InlineKeyboardButton(text="❌ Закрыть", callback_data="admin_close")],
@@ -795,6 +805,369 @@ async def admin_list_operators(callback: CallbackQuery):
                 ]
             ]
         )
+
+        await callback.message.edit_text(text, reply_markup=keyboard)
+        await callback.answer()
+
+
+@router.callback_query(F.data == "admin_manage_phrases")
+async def admin_manage_phrases(callback: CallbackQuery):
+    """Меню управления фразами"""
+    keyboard = InlineKeyboardMarkup(
+        inline_keyboard=[
+            [
+                InlineKeyboardButton(
+                    text="➕ Добавить фразу",
+                    callback_data="admin_add_phrase",
+                )
+            ],
+            [
+                InlineKeyboardButton(
+                    text="➖ Удалить фразу",
+                    callback_data="admin_remove_phrase",
+                )
+            ],
+            [
+                InlineKeyboardButton(
+                    text="📋 Список всех фраз",
+                    callback_data="admin_list_phrases",
+                )
+            ],
+            [InlineKeyboardButton(text="🔙 Назад", callback_data="admin_back")],
+        ]
+    )
+
+    async with db_helper.scoped_session_dependency() as session:
+        phrases = await get_phrases(session)
+        count = len(phrases) if phrases else 0
+
+        await callback.message.edit_text(
+            f"📚 Управление фразами\n\n"
+            f"📌 Всего фраз в базе: {count}\n\n"
+            f"Фразы используются для автоматических ответов бота.\n"
+            f"Выберите действие:",
+            reply_markup=keyboard,
+        )
+        await callback.answer()
+
+
+@router.callback_query(F.data == "admin_add_phrase")
+async def admin_add_phrase_start(callback: CallbackQuery, state: FSMContext):
+    """Начало добавления фразы"""
+    await callback.message.edit_text(
+        "➕ Добавление новой фразы\n\n"
+        "Введите текст фразы, которую хотите добавить в базу данных:\n\n"
+        "📝 Пример: 'Привет! Как дела?'"
+    )
+    await state.set_state(AdminStates.waiting_for_phrase_text)
+    await callback.answer()
+
+
+@router.message(AdminStates.waiting_for_phrase_text)
+async def admin_add_phrase_process(message: Message, state: FSMContext):
+    """Обработка добавления фразы"""
+    phrase_text = message.text.strip()
+
+    if not phrase_text:
+        await message.answer("❌ Текст фразы не может быть пустым. Попробуйте снова:")
+        return
+
+    async with db_helper.scoped_session_dependency() as session:
+        phrase = await create_phrase(session, phrase_text)
+
+        await message.answer(
+            f"✅ Фраза успешно добавлена!\n\n"
+            f"📌 ID: {phrase.id}\n"
+            f"📌 Текст: {phrase.phrase}\n"
+            f"📌 Создана: {phrase.create_at.strftime('%d.%m.%Y %H:%M') if phrase.create_at else 'Неизвестно'}"
+        )
+
+    await state.clear()
+    await message.answer(
+        "Выберите следующее действие:", reply_markup=get_admin_keyboard()
+    )
+
+
+@router.callback_query(F.data == "admin_remove_phrase")
+async def admin_remove_phrase_start(callback: CallbackQuery, state: FSMContext):
+    """Начало удаления фразы"""
+    async with db_helper.scoped_session_dependency() as session:
+        phrases = await get_phrases(session)
+
+        if not phrases:
+            await callback.message.edit_text(
+                "❌ В базе данных нет фраз для удаления.\n\n"
+                "Сначала добавьте фразы через '➕ Добавить фразу'.",
+                reply_markup=InlineKeyboardMarkup(
+                    inline_keyboard=[
+                        [
+                            InlineKeyboardButton(
+                                text="🔙 Назад", callback_data="admin_manage_phrases"
+                            )
+                        ]
+                    ]
+                ),
+            )
+            await callback.answer()
+            return
+
+        # Создаем клавиатуру с выбором фразы для удаления
+        keyboard_buttons = []
+        for phrase in phrases[:10]:  # Показываем первые 10 фраз
+            keyboard_buttons.append(
+                [
+                    InlineKeyboardButton(
+                        text=f"❌ #{phrase.id}: {phrase.phrase[:30]}...",
+                        callback_data=f"admin_delete_phrase_{phrase.id}",
+                    )
+                ]
+            )
+
+        keyboard_buttons.append(
+            [
+                InlineKeyboardButton(
+                    text="🔙 Назад", callback_data="admin_manage_phrases"
+                )
+            ]
+        )
+
+        keyboard = InlineKeyboardMarkup(inline_keyboard=keyboard_buttons)
+
+        text = "➖ Удаление фразы\n\n"
+        text += "Выберите фразу для удаления:\n\n"
+        for phrase in phrases[:10]:
+            text += f"• #{phrase.id}: {phrase.phrase[:50]}...\n"
+
+        if len(phrases) > 10:
+            text += f"\n... и еще {len(phrases) - 10} фраз"
+
+        await callback.message.edit_text(text, reply_markup=keyboard)
+        await state.set_state(AdminStates.waiting_for_phrase_delete_id)
+        await callback.answer()
+
+
+@router.callback_query(F.data.startswith("admin_delete_phrase_"))
+async def admin_delete_phrase_confirm(callback: CallbackQuery, state: FSMContext):
+    """Подтверждение удаления фразы"""
+    phrase_id = int(callback.data.split("_")[3])
+    await state.update_data(delete_phrase_id=phrase_id)
+
+    async with db_helper.scoped_session_dependency() as session:
+        from sqlalchemy import select
+        from core.models import Phrase
+
+        stmt = select(Phrase).where(Phrase.id == phrase_id)
+        result = await session.execute(stmt)
+        phrase = result.scalar_one_or_none()
+
+        if not phrase:
+            await callback.message.edit_text(
+                "❌ Фраза не найдена. Возможно, она уже была удалена.",
+                reply_markup=InlineKeyboardMarkup(
+                    inline_keyboard=[
+                        [
+                            InlineKeyboardButton(
+                                text="🔙 Назад", callback_data="admin_manage_phrases"
+                            )
+                        ]
+                    ]
+                ),
+            )
+            await callback.answer()
+            return
+
+        keyboard = InlineKeyboardMarkup(
+            inline_keyboard=[
+                [
+                    InlineKeyboardButton(
+                        text="✅ Да, удалить",
+                        callback_data="admin_confirm_delete_phrase",
+                    ),
+                    InlineKeyboardButton(
+                        text="❌ Отмена", callback_data="admin_cancel_delete_phrase"
+                    ),
+                ]
+            ]
+        )
+
+        await callback.message.edit_text(
+            f"⚠️ Вы уверены, что хотите удалить эту фразу?\n\n"
+            f"📌 ID: {phrase.id}\n"
+            f"📌 Текст: {phrase.phrase}\n\n"
+            f"Это действие нельзя отменить!",
+            reply_markup=keyboard,
+        )
+        await callback.answer()
+
+
+@router.callback_query(F.data == "admin_confirm_delete_phrase")
+async def admin_delete_phrase_process(callback: CallbackQuery, state: FSMContext):
+    """Обработка удаления фразы"""
+    data = await state.get_data()
+    phrase_id = data.get("delete_phrase_id")
+
+    if not phrase_id:
+        await callback.message.edit_text("❌ Ошибка: ID фразы не найден")
+        await state.clear()
+        return
+
+    async with db_helper.scoped_session_dependency() as session:
+        success = await delete_phrase(session, phrase_id)
+
+        if success:
+            await callback.message.edit_text(
+                f"✅ Фраза с ID {phrase_id} успешно удалена из базы данных!"
+            )
+        else:
+            await callback.message.edit_text(
+                f"❌ Не удалось удалить фразу с ID {phrase_id}. Возможно, она не существует."
+            )
+
+    await state.clear()
+    await callback.message.answer(
+        "Выберите следующее действие:", reply_markup=get_admin_keyboard()
+    )
+    await callback.answer()
+
+
+@router.callback_query(F.data == "admin_cancel_delete_phrase")
+async def admin_delete_phrase_cancel(callback: CallbackQuery, state: FSMContext):
+    """Отмена удаления фразы"""
+    await state.clear()
+    await callback.message.edit_text(
+        "❌ Удаление фразы отменено",
+        reply_markup=InlineKeyboardMarkup(
+            inline_keyboard=[
+                [
+                    InlineKeyboardButton(
+                        text="🔙 Назад", callback_data="admin_manage_phrases"
+                    )
+                ]
+            ]
+        ),
+    )
+    await callback.answer()
+
+
+@router.callback_query(F.data == "admin_list_phrases")
+async def admin_list_phrases(callback: CallbackQuery):
+    """Показывает список всех фраз"""
+    async with db_helper.scoped_session_dependency() as session:
+        phrases = await get_phrases(session)
+
+        if not phrases:
+            await callback.message.edit_text(
+                "📋 Список фраз\n\n"
+                "❌ Фразы не найдены.\n\n"
+                "Чтобы добавить фразу, используйте кнопку 'Добавить фразу'.",
+                reply_markup=InlineKeyboardMarkup(
+                    inline_keyboard=[
+                        [
+                            InlineKeyboardButton(
+                                text="🔙 Назад", callback_data="admin_manage_phrases"
+                            )
+                        ]
+                    ]
+                ),
+            )
+            await callback.answer()
+            return
+
+        # Разбиваем список на страницы (по 10 фраз)
+        pages = [phrases[i : i + 10] for i in range(0, len(phrases), 10)]
+        current_page = 0
+
+        text = f"📋 Список фраз (страница {current_page + 1}/{len(pages)}):\n\n"
+        for i, phrase in enumerate(pages[current_page], 1):
+            text += f"{i}. #{phrase.id}: {phrase.phrase}\n"
+
+        # Добавляем навигацию по страницам
+        keyboard_buttons = []
+        if len(pages) > 1:
+            nav_buttons = []
+            if current_page > 0:
+                nav_buttons.append(
+                    InlineKeyboardButton(
+                        text="⬅️ Назад",
+                        callback_data=f"admin_phrases_page_{current_page - 1}",
+                    )
+                )
+            if current_page < len(pages) - 1:
+                nav_buttons.append(
+                    InlineKeyboardButton(
+                        text="Вперед ➡️",
+                        callback_data=f"admin_phrases_page_{current_page + 1}",
+                    )
+                )
+            if nav_buttons:
+                keyboard_buttons.append(nav_buttons)
+
+        keyboard_buttons.append(
+            [
+                InlineKeyboardButton(
+                    text="🔙 Назад", callback_data="admin_manage_phrases"
+                )
+            ]
+        )
+
+        keyboard = InlineKeyboardMarkup(inline_keyboard=keyboard_buttons)
+
+        await callback.message.edit_text(text, reply_markup=keyboard)
+        await callback.answer()
+
+
+@router.callback_query(F.data.startswith("admin_phrases_page_"))
+async def admin_phrases_page(callback: CallbackQuery):
+    """Переключение страниц списка фраз"""
+    page = int(callback.data.split("_")[3])
+
+    async with db_helper.scoped_session_dependency() as session:
+        phrases = await get_phrases(session)
+
+        if not phrases:
+            await callback.answer("Фразы не найдены")
+            return
+
+        pages = [phrases[i : i + 10] for i in range(0, len(phrases), 10)]
+        current_page = page
+
+        if current_page >= len(pages) or current_page < 0:
+            await callback.answer("Страница не найдена")
+            return
+
+        text = f"📋 Список фраз (страница {current_page + 1}/{len(pages)}):\n\n"
+        for i, phrase in enumerate(pages[current_page], 1):
+            text += f"{i}. #{phrase.id}: {phrase.phrase}\n"
+
+        keyboard_buttons = []
+        if len(pages) > 1:
+            nav_buttons = []
+            if current_page > 0:
+                nav_buttons.append(
+                    InlineKeyboardButton(
+                        text="⬅️ Назад",
+                        callback_data=f"admin_phrases_page_{current_page - 1}",
+                    )
+                )
+            if current_page < len(pages) - 1:
+                nav_buttons.append(
+                    InlineKeyboardButton(
+                        text="Вперед ➡️",
+                        callback_data=f"admin_phrases_page_{current_page + 1}",
+                    )
+                )
+            if nav_buttons:
+                keyboard_buttons.append(nav_buttons)
+
+        keyboard_buttons.append(
+            [
+                InlineKeyboardButton(
+                    text="🔙 Назад", callback_data="admin_manage_phrases"
+                )
+            ]
+        )
+
+        keyboard = InlineKeyboardMarkup(inline_keyboard=keyboard_buttons)
 
         await callback.message.edit_text(text, reply_markup=keyboard)
         await callback.answer()
