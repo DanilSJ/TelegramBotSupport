@@ -24,7 +24,10 @@ async def echo(message: Message):
         user = await create_user(
             session, message.from_user.id, message.from_user.username
         )
-
+        print(user)
+        print(user.is_admin)
+        print(user.id)
+        print(user.telegram_id)
         if user.is_block:
             return False
 
