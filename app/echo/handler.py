@@ -24,20 +24,14 @@ async def echo(message: Message):
         user = await create_user(
             session, message.from_user.id, message.from_user.username
         )
-        print(f"телега  {message.from_user.id}         база {user.telegram_id}")
-        print(user)
-        print(user.is_admin)
-        print(user.id)
-        print(user.telegram_id)
+
         if user.is_block:
             return False
 
         # Operator send message
         if user.is_operator:
-            print("enter admin")
             topics = await get_topics(session)
             for el in topics:
-                print(f"eeee:  {message.message_thread_id}     {el.topic_id}")
                 if message.message_thread_id == el.topic_id:
                     client_user = await get_user(session, el.user_id)
                     try:
@@ -112,9 +106,9 @@ async def echo(message: Message):
                             f"Произошла ошибка (Возможно человек заблокировал бота): {err}"
                         )
 
-        if message.text:
-            if len(message.text) < 8:
-                return await message.answer("Вопрос должен быть от 8 символов!!")
+        # if message.text:
+        #     if len(message.text) < 8:
+        #         return await message.answer("Вопрос должен быть от 8 символов!!")
 
         if user.connect_operator:
             if message.text:
