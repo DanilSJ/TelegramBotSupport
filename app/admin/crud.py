@@ -1,3 +1,5 @@
+from typing import List
+
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, Result, update
 from core.models import AI, User, Message, Start, Phrase
@@ -205,3 +207,17 @@ async def delete_phrase(
     await session.commit()
 
     return True
+
+
+async def get_phrases(
+    session: AsyncSession,
+) -> List[Phrase] | None:
+    stmt = select(Phrase)
+
+    result: Result = await session.execute(stmt)
+    phrases = result.scalars().all()
+
+    if not phrases:
+        return None
+
+    return list(phrases)
