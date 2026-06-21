@@ -30,8 +30,10 @@ async def echo(message: Message):
 
         # Operator send message
         if user.is_operator:
+            print("enter admin")
             topics = await get_topics(session)
             for el in topics:
+                print(f"eeee:  {message.message_thread_id}     {el.topic_id}")
                 if message.message_thread_id == el.topic_id:
                     client_user = await get_user(session, el.user_id)
                     try:
