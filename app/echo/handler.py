@@ -24,6 +24,7 @@ async def echo(message: Message):
         user = await create_user(
             session, message.from_user.id, message.from_user.username
         )
+        print(f"телега  {message.from_user.id}         база {user.telegram_id}")
         print(user)
         print(user.is_admin)
         print(user.id)
