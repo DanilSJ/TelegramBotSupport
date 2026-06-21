@@ -1,6 +1,6 @@
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, Result, update
-from core.models import AI, User, Message, Start
+from core.models import AI, User, Message, Start, Phrase
 
 
 async def create_ai(
@@ -173,3 +173,33 @@ async def make_user_operator(
     await session.refresh(user)
 
     return user
+
+async def create_phrase(
+    session: AsyncSession,
+    text: str,
+) -> Phrase:
+    phrase = Phrase(
+        phrase=text,
+    )
+
+    session.add(phrase)
+    await session.commit()
+    await session.refresh(phrase)
+
+    return phrase
+
+async def delete_phrase(
+    session: AsyncSession,
+    phrase_id: int,
+) -> bool:
+    stmt = select(Phrase).where(Phrase.id == phrase_id)
+    result = await session.execute(stmt)
+    phrase = result.scalar_one_or_none()
+
+    if not phrase:
+        return False
+
+    await session.delete(phrase)
+    await session.commit()
+
+    return True
