@@ -26,7 +26,7 @@ async def echo(message: Message):
         )
 
         if user.is_block:
-            return False
+            return None
 
         # Operator send message
         if user.is_operator:
