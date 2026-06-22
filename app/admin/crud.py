@@ -60,10 +60,10 @@ async def block_user(
     if not user:
         return None
 
-    if user.block:
-        user.block = False
+    if user.is_block:
+        user.is_block = False
     else:
-        user.block = True
+        user.is_block = True
 
     await session.commit()
     await session.refresh(user)
