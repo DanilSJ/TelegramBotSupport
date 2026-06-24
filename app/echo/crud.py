@@ -1,8 +1,11 @@
+from datetime import datetime, timedelta, timezone
 from typing import Optional
 from sqlalchemy.engine import Result
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, func
 from core.models import User, Topic, Message, Phrase
+
+MSK = timezone(timedelta(hours=3))
 
 
 async def create_user(
@@ -211,7 +214,8 @@ async def close_dialog(
         return None
 
     if not topic.is_closed:
-        topic.is_block = True
+        topic.is_closed = True
+        topic.closed_at = datetime.now(MSK)  # Устанавливаем время закрытия
 
         await session.commit()
         await session.refresh(topic)
