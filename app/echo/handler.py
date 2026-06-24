@@ -10,6 +10,8 @@ from app.echo.crud import (
     get_user,
     get_phrases,
     update_user_disconnect_topic,
+    close_dialog,
+    get_topic,
 )
 from core.models import db_helper
 from services.ai import AI
@@ -32,8 +34,20 @@ async def echo(message: Message):
         if user.is_operator:
             topics = await get_topics(session)
             for el in topics:
+                if message.text and message.text == "/closed":
+                    await close_dialog(session, el.id)
+                    return await message.answer("Диалог закрыт")
                 if message.message_thread_id == el.topic_id:
                     client_user = await get_user(session, el.user_id)
+                    if message.text:
+                        await create_message(
+                            session=session,
+                            user_id=user.id,
+                            id_message=message.message_id,
+                            message=message.text,
+                            topic_id=user.user_topic_id,
+                            is_admin=True,
+                        )
                     try:
                         if message.text:
                             return await message.bot.send_message(
@@ -106,11 +120,11 @@ async def echo(message: Message):
                             f"Произошла ошибка (Возможно человек заблокировал бота): {err}"
                         )
 
-        # if message.text:
-        #     if len(message.text) < 8:
-        #         return await message.answer("Вопрос должен быть от 8 символов!!")
-
         if user.connect_operator:
+            topic = await get_topic(session, user.user_topic_id)
+            if topic.is_closed:
+                await update_user_disconnect_topic(session, user.id)
+                return await message.answer("Оператор закрыл диалог с вами")
             if message.text:
                 await create_message(
                     session=session,
