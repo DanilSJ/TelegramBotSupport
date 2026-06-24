@@ -1,4 +1,6 @@
-from sqlalchemy import String, BigInteger, ForeignKey, Boolean
+from datetime import datetime
+
+from sqlalchemy import String, BigInteger, ForeignKey, Boolean, DateTime
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from .base import Base
 
@@ -12,6 +14,7 @@ class Topic(Base):
     )
 
     is_closed: Mapped[bool] = mapped_column(Boolean, default=False, nullable=True)
+    closed_at: Mapped[datetime] = mapped_column(DateTime, nullable=True)
 
     user: Mapped["User"] = relationship(
         "User",
