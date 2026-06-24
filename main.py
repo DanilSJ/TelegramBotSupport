@@ -12,22 +12,32 @@ from core.config import bot
 from app import start_router, echo_router, admin_router
 from core.models import db_helper
 
-from services.clear_topic import delete_old_topics
+from services.clear_topic import delete_old_topics, check_and_delete_closed_topics
 
 dp = Dispatcher()
 
 
 async def delete_old_topics_task():
-    """Фоновая задача для удаления старых топиков каждый час"""
+    """Фоновая задача для удаления старых топиков и закрытых топиков каждые 30 минут"""
     while True:
         try:
-            # Ждем 1 час перед выполнением
-            await asyncio.sleep(3600)
+            # Ждем 30 минут перед выполнением
+            await asyncio.sleep(1800)  # 30 минут
 
             async with db_helper.scoped_session_dependency() as session:
-                await delete_old_topics(session, days=3)
+                # Удаляем старые топики (3 дня)
+                deleted_old = await delete_old_topics(session, days=3)
+
+                # Удаляем закрытые топики (через 30 минут)
+                result = await check_and_delete_closed_topics(session)
+
+                if deleted_old > 0 or result["deleted_closed"] > 0:
+                    print(
+                        f"Удалено старых топиков: {deleted_old}, закрытых топиков: {result['deleted_closed']}"
+                    )
+
         except Exception as e:
-            print(e)
+            print(f"Ошибка в фоновой задаче: {e}")
 
 
 async def main():
