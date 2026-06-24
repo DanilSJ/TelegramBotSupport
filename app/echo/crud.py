@@ -124,6 +124,7 @@ async def create_message(
     message: str,
     topic_id: int | None = None,
     ai_message: str | None = None,
+    is_admin: bool | None = None,
 ) -> Message:
     message_obj = Message(
         id_message=id_message,
@@ -131,6 +132,7 @@ async def create_message(
         ai_message=ai_message,
         topic_id=topic_id,
         user_id=user_id,
+        is_admin=is_admin,
     )
 
     session.add(message_obj)
@@ -168,6 +170,17 @@ async def get_topics(session: AsyncSession) -> list[Topic]:
     return list(topics)
 
 
+async def get_topic(session: AsyncSession, topic_id: int) -> Topic | None:
+    stmt = select(Topic).where(Topic.id == topic_id)
+    result = await session.execute(stmt)
+    topic = result.scalar_one_or_none()
+
+    if not topic:
+        return None
+
+    return topic
+
+
 async def get_user(session: AsyncSession, user_id: int) -> User:
     stmt = select(User).where(User.id == user_id)
 
@@ -184,3 +197,23 @@ async def get_phrases(session: AsyncSession) -> list[str]:
     phrases = result.scalars().all()
 
     return list(phrases)
+
+
+async def close_dialog(
+    session: AsyncSession,
+    topic_id: int,
+) -> Topic | None:
+    stmt = select(Topic).where(Topic.id == topic_id)
+    result = await session.execute(stmt)
+    topic = result.scalar_one_or_none()
+
+    if not topic:
+        return None
+
+    if not topic.is_closed:
+        topic.is_block = True
+
+        await session.commit()
+        await session.refresh(topic)
+
+    return topic
