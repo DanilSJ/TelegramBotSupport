@@ -174,7 +174,7 @@ async def get_topics(session: AsyncSession) -> list[Topic]:
 
 
 async def get_topic(session: AsyncSession, topic_id: int) -> Topic | None:
-    stmt = select(Topic).where(Topic.id == topic_id)
+    stmt = select(Topic).where(Topic.topic_id == topic_id)
     result = await session.execute(stmt)
     topic = result.scalar_one_or_none()
 
