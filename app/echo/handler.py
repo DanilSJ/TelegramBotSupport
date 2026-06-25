@@ -122,9 +122,11 @@ async def echo(message: Message):
 
         if user.connect_operator:
             topic = await get_topic(session, user.user_topic_id)
-            if topic.is_closed:
-                await update_user_disconnect_topic(session, user.id)
-                return await message.answer("Оператор закрыл диалог с вами")
+            if topic:
+                if topic.is_closed:
+                    await update_user_disconnect_topic(session, user.id)
+                    return await message.answer("Оператор закрыл диалог с вами")
+
             if message.text:
                 await create_message(
                     session=session,
