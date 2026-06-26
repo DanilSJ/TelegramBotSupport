@@ -241,6 +241,7 @@ async def update_system_prompt(
 
     return ai
 
+
 async def get_system_prompt(
     session: AsyncSession,
 ) -> AI | None:
