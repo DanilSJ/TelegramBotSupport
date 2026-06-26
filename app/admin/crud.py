@@ -240,3 +240,15 @@ async def update_system_prompt(
     await session.refresh(ai)
 
     return ai
+
+async def get_system_prompt(
+    session: AsyncSession,
+) -> AI | None:
+    stmt = select(AI).where(AI.use == True)
+    result = await session.execute(stmt)
+    ai = result.scalar_one_or_none()
+
+    if not ai:
+        return None
+
+    return ai
