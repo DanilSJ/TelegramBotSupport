@@ -20,6 +20,8 @@ from .crud import (
     get_phrases,
     create_phrase,
     delete_phrase,
+    get_system_prompt,
+    update_system_prompt,
 )
 from app.echo.crud import create_user
 from app.start.crud import get_start_text
@@ -43,6 +45,7 @@ class AdminStates(StatesGroup):
     waiting_for_operator_telegram_id = State()
     waiting_for_phrase_text = State()
     waiting_for_phrase_delete_id = State()
+    waiting_for_system_prompt_edit = State()
 
 
 def get_admin_keyboard() -> InlineKeyboardMarkup:
@@ -71,6 +74,12 @@ def get_admin_keyboard() -> InlineKeyboardMarkup:
             )
         ],
         [InlineKeyboardButton(text="🔄 Выбрать AI", callback_data="admin_update_ai")],
+        [
+            InlineKeyboardButton(
+                text="⚙️ Изменить системный промпт",
+                callback_data="admin_edit_system_prompt",
+            )
+        ],
         [
             InlineKeyboardButton(
                 text="📝 Управление /start текстом", callback_data="admin_manage_start"
@@ -1171,6 +1180,178 @@ async def admin_phrases_page(callback: CallbackQuery):
 
         await callback.message.edit_text(text, reply_markup=keyboard)
         await callback.answer()
+
+
+@router.callback_query(F.data == "admin_edit_system_prompt")
+async def admin_edit_system_prompt(callback: CallbackQuery, state: FSMContext):
+    """Просмотр и изменение системного промпта активной AI модели"""
+    async with db_helper.scoped_session_dependency() as session:
+        ai = await get_system_prompt(session)
+
+        if not ai:
+            keyboard = InlineKeyboardMarkup(
+                inline_keyboard=[
+                    [InlineKeyboardButton(text="🔙 Назад", callback_data="admin_back")]
+                ]
+            )
+            await callback.message.edit_text(
+                "❌ Активная AI модель не найдена.\n\n"
+                "Сначала создайте и активируйте AI модель через:\n"
+                "• 'Создать новую AI модель'\n"
+                "• 'Выбрать AI'",
+                reply_markup=keyboard,
+            )
+            await callback.answer()
+            return
+
+        keyboard = InlineKeyboardMarkup(
+            inline_keyboard=[
+                [
+                    InlineKeyboardButton(
+                        text="✏️ Изменить системный промпт",
+                        callback_data="admin_change_system_prompt",
+                    )
+                ],
+                [
+                    InlineKeyboardButton(
+                        text="👁️ Просмотреть полный промпт",
+                        callback_data="admin_view_system_prompt",
+                    )
+                ],
+                [InlineKeyboardButton(text="🔙 Назад", callback_data="admin_back")],
+            ]
+        )
+
+        await callback.message.edit_text(
+            f"⚙️ Управление системным промптом\n\n"
+            f"📌 Активная модель: {ai.model}\n"
+            f"📌 Текущий промпт (превью):\n{ai.system_prompt[:150]}...\n\n"
+            f"Выберите действие:",
+            reply_markup=keyboard,
+        )
+        await callback.answer()
+
+
+@router.callback_query(F.data == "admin_view_system_prompt")
+async def admin_view_system_prompt(callback: CallbackQuery):
+    """Просмотр полного системного промпта"""
+    async with db_helper.scoped_session_dependency() as session:
+        ai = await get_system_prompt(session)
+
+        if not ai:
+            await callback.message.edit_text(
+                "❌ Активная AI модель не найдена.",
+                reply_markup=InlineKeyboardMarkup(
+                    inline_keyboard=[
+                        [
+                            InlineKeyboardButton(
+                                text="🔙 Назад",
+                                callback_data="admin_edit_system_prompt",
+                            )
+                        ]
+                    ]
+                ),
+            )
+            await callback.answer()
+            return
+
+        keyboard = InlineKeyboardMarkup(
+            inline_keyboard=[
+                [
+                    InlineKeyboardButton(
+                        text="✏️ Изменить", callback_data="admin_change_system_prompt"
+                    )
+                ],
+                [
+                    InlineKeyboardButton(
+                        text="🔙 Назад", callback_data="admin_edit_system_prompt"
+                    )
+                ],
+            ]
+        )
+
+        await callback.message.edit_text(
+            f"👁️ Полный системный промпт:\n\n"
+            f"📌 Модель: {ai.model}\n"
+            f"📌 ID: {ai.id}\n\n"
+            f"📝 Текст промпта:\n"
+            f"```\n{ai.system_prompt}\n```\n\n"
+            f"Вы можете отредактировать его, нажав 'Изменить'.",
+            reply_markup=keyboard,
+            parse_mode="HTML",
+        )
+        await callback.answer()
+
+
+@router.callback_query(F.data == "admin_change_system_prompt")
+async def admin_change_system_prompt_start(callback: CallbackQuery, state: FSMContext):
+    """Начало процесса изменения системного промпта"""
+    async with db_helper.scoped_session_dependency() as session:
+        ai = await get_system_prompt(session)
+
+        if not ai:
+            await callback.message.edit_text(
+                "❌ Активная AI модель не найдена.",
+                reply_markup=InlineKeyboardMarkup(
+                    inline_keyboard=[
+                        [
+                            InlineKeyboardButton(
+                                text="🔙 Назад",
+                                callback_data="admin_edit_system_prompt",
+                            )
+                        ]
+                    ]
+                ),
+            )
+            await callback.answer()
+            return
+
+        await state.update_data(current_system_prompt=ai.system_prompt)
+
+        await callback.message.edit_text(
+            f"✏️ Изменение системного промпта\n\n"
+            f"📌 Текущая модель: {ai.model}\n"
+            f"📌 Текущий промпт:\n{ai.system_prompt}\n\n"
+            f"📝 Введите новый системный промпт:\n\n"
+            f"💡 Системный промпт определяет поведение AI.\n"
+            f"Например: 'Ты - полезный ассистент, который помогает пользователям.'\n\n"
+            f"Чтобы отменить, напишите /cancel"
+        )
+        await state.set_state(AdminStates.waiting_for_system_prompt_edit)
+        await callback.answer()
+
+
+@router.message(AdminStates.waiting_for_system_prompt_edit)
+async def admin_save_system_prompt(message: Message, state: FSMContext):
+    """Сохранение нового системного промпта"""
+    new_prompt = message.text.strip()
+
+    if not new_prompt:
+        await message.answer("❌ Промпт не может быть пустым. Попробуйте снова:")
+        return
+
+    async with db_helper.scoped_session_dependency() as session:
+        ai = await update_system_prompt(session, new_prompt)
+
+        if not ai:
+            await message.answer(
+                "❌ Активная AI модель не найдена.\n"
+                "Сначала создайте и активируйте AI модель."
+            )
+            await state.clear()
+            return
+
+        await message.answer(
+            f"✅ Системный промпт успешно обновлен!\n\n"
+            f"📌 Модель: {ai.model}\n"
+            f"📌 Новый промпт:\n{ai.system_prompt[:200]}...\n\n"
+            f"Теперь AI будет использовать этот промпт для всех новых ответов."
+        )
+
+    await state.clear()
+    await message.answer(
+        "Выберите следующее действие:", reply_markup=get_admin_keyboard()
+    )
 
 
 @router.message(Command("cancel"))
