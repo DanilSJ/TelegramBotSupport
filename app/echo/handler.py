@@ -20,6 +20,18 @@ from core.config import settings
 router = Router()
 
 
+async def get_user_history(session, user_id, limit=30):
+    messages = await get_user_messages(session, user_id, limit=limit)
+    history = []
+    for msg in messages:
+        if msg.ai_message:
+            history.append(f"User: {msg.message}")
+            history.append(f"AI: {msg.ai_message}")
+        else:
+            history.append(f"User: {msg.message}")
+    return "\n".join(history)
+
+
 @router.message()
 async def echo(message: Message):
     async with db_helper.scoped_session_dependency() as session:
@@ -203,8 +215,13 @@ async def echo(message: Message):
                 )
 
         if message.text:
-            ai = AI(message.text)
+            history = await get_user_history(session, user.id, limit=30)
+
+            full_prompt = f"История диалога:\n{history}\n\nТекущее сообщение пользователя:\n{message.text}"
+
+            ai = AI(full_prompt)
             result = await ai.send()
+
             if not result:
                 return await message.answer(
                     "Ошибка не удалось авторизоваться в ИИ(возможно закончились деньги на балансе или удален токен)"
