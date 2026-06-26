@@ -221,3 +221,22 @@ async def get_phrases(
         return None
 
     return list(phrases)
+
+
+async def update_system_prompt(
+    session: AsyncSession,
+    text: str,
+) -> AI | None:
+    stmt = select(AI).where(AI.use == True)
+    result = await session.execute(stmt)
+    ai = result.scalar_one_or_none()
+
+    if not ai:
+        return None
+
+    ai.system_prompt = text
+
+    await session.commit()
+    await session.refresh(ai)
+
+    return ai
