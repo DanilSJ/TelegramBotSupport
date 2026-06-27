@@ -18,6 +18,10 @@ class User(Base):
 
     messages: Mapped[list["Message"]] = relationship("Message", back_populates="user")
 
+    ai_message: Mapped[list["Ai_message"]] = relationship(
+        "Ai_message", back_populates="user"
+    )
+
     topic: Mapped["Topic"] = relationship(
         "Topic",
         back_populates="user",
