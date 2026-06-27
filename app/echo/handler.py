@@ -1,3 +1,5 @@
+from typing import List, Dict
+
 from aiogram import Router
 from aiogram.types import Message
 from app.echo.crud import (
@@ -12,24 +14,31 @@ from app.echo.crud import (
     update_user_disconnect_topic,
     close_dialog,
     get_topic,
+    get_user_ai_messages,
+    create_ai_messages,
 )
 from core.models import db_helper
 from services.ai import AI
 from core.config import settings
+from services.crud import get_ai_use
 
 router = Router()
 
 
-async def get_user_history(session, user_id, limit=30):
-    messages = await get_user_messages(session, user_id, limit=limit)
-    history = []
+async def get_user_history_messages(
+    session, user_id: int, limit: int = 30
+) -> List[Dict[str, str]]:
+    messages = await get_user_ai_messages(session, user_id, limit=limit)
+
+    history_messages: List[Dict[str, str]] = []
+
     for msg in messages:
+        history_messages.append({"role": "user", "content": msg.message})
+
         if msg.ai_message:
-            history.append(f"User: {msg.message}")
-            history.append(f"AI: {msg.ai_message}")
-        else:
-            history.append(f"User: {msg.message}")
-    return "\n".join(history)
+            history_messages.append({"role": "assistant", "content": msg.ai_message})
+
+    return history_messages
 
 
 @router.message()
@@ -215,11 +224,19 @@ async def echo(message: Message):
                 )
 
         if message.text:
-            history = await get_user_history(session, user.id, limit=30)
+            ai = await get_ai_use(session)
 
-            full_prompt = f"История диалога:\n{history}\n\nТекущее сообщение пользователя:\n{message.text}"
+            history_messages = await get_user_history_messages(
+                session, user.id, limit=30
+            )
 
-            ai = AI(full_prompt)
+            messages_for_ai = [{"role": "system", "content": ai.system_prompt}]
+
+            messages_for_ai.extend(history_messages)
+
+            messages_for_ai.append({"role": "user", "content": message.text})
+
+            ai = AI(messages_for_ai)
             result = await ai.send()
 
             if not result:
@@ -231,6 +248,12 @@ async def echo(message: Message):
                 session=session,
                 user_id=user.id,
                 id_message=message.message_id,
+                message=message.text,
+                ai_message=result,
+            )
+            await create_ai_messages(
+                session=session,
+                user_id=user.id,
                 message=message.text,
                 ai_message=result,
             )
