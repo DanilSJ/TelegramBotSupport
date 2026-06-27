@@ -1,5 +1,6 @@
 __all__ = [
     "Start",
+    "Ai_message",
     "Phrase",
     "Message",
     "Topic",
@@ -12,6 +13,7 @@ __all__ = [
 
 from .user import User
 from .start import Start
+from .ai_message import Ai_message
 from .phrase import Phrase
 from .topic import Topic
 from .message import Message
