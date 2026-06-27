@@ -3,7 +3,7 @@ from typing import Optional
 from sqlalchemy.engine import Result
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, func
-from core.models import User, Topic, Message, Phrase
+from core.models import User, Topic, Message, Phrase, Ai_message
 
 MSK = timezone(timedelta(hours=3))
 
@@ -162,6 +162,43 @@ async def get_user_messages(
     messages = result.scalars().all()
 
     return list(messages)
+
+
+async def get_user_ai_messages(
+    session: AsyncSession,
+    user_id: int,
+    limit: int = 30,
+) -> list[Ai_message]:
+    stmt = (
+        select(Ai_message)
+        .where(Ai_message.user_id == user_id)
+        .order_by(Ai_message.create_at.desc())
+        .limit(limit)
+    )
+
+    result: Result = await session.execute(stmt)
+    messages = result.scalars().all()
+
+    return list(reversed(messages))
+
+
+async def create_ai_messages(
+    session: AsyncSession,
+    user_id: int,
+    message: str,
+    ai_message: str,
+) -> Ai_message:
+    msg = Ai_message(
+        message=message,
+        ai_message=ai_message,
+        user_id=user_id,
+    )
+
+    session.add(msg)
+    await session.commit()
+    await session.refresh(msg)
+
+    return msg
 
 
 async def get_topics(session: AsyncSession) -> list[Topic]:
