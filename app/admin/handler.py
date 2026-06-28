@@ -1204,6 +1204,11 @@ async def admin_edit_system_prompt(callback: CallbackQuery, state: FSMContext):
             await callback.answer()
             return
 
+        # Обрезаем промпт для превью, но безопасно
+        prompt_preview = ai.system_prompt[:150] if ai.system_prompt else "(пусто)"
+        if len(ai.system_prompt) > 150:
+            prompt_preview += "..."
+
         keyboard = InlineKeyboardMarkup(
             inline_keyboard=[
                 [
@@ -1225,9 +1230,10 @@ async def admin_edit_system_prompt(callback: CallbackQuery, state: FSMContext):
         await callback.message.edit_text(
             f"⚙️ Управление системным промптом\n\n"
             f"📌 Активная модель: {ai.model}\n"
-            f"📌 Текущий промпт (превью):\n{ai.system_prompt[:150]}...\n\n"
+            f"📌 Текущий промпт (превью):\n<code>{prompt_preview}</code>\n\n"
             f"Выберите действие:",
             reply_markup=keyboard,
+            parse_mode="Markdown",
         )
         await callback.answer()
 
@@ -1255,11 +1261,27 @@ async def admin_view_system_prompt(callback: CallbackQuery):
             await callback.answer()
             return
 
+        # Обрезаем системный промпт, если он слишком длинный
+        max_length = 3500  # Оставляем запас для остального текста
+        prompt_text = ai.system_prompt
+
+        if len(prompt_text) > max_length:
+            # Обрезаем и добавляем индикатор, что текст обрезан
+            prompt_text = (
+                prompt_text[:max_length]
+                + "\n\n... (текст обрезан из-за ограничений Telegram)"
+            )
+
         keyboard = InlineKeyboardMarkup(
             inline_keyboard=[
                 [
                     InlineKeyboardButton(
                         text="✏️ Изменить", callback_data="admin_change_system_prompt"
+                    )
+                ],
+                [
+                    InlineKeyboardButton(
+                        text="📤 Полный текст", callback_data="admin_view_full_prompt"
                     )
                 ],
                 [
@@ -1275,7 +1297,7 @@ async def admin_view_system_prompt(callback: CallbackQuery):
             f"📌 Модель: {ai.model}\n"
             f"📌 ID: {ai.id}\n\n"
             f"📝 Текст промпта:\n"
-            f"```\n{ai.system_prompt}\n```\n\n"
+            f"<pre>{prompt_text}</pre>\n\n"
             f"Вы можете отредактировать его, нажав 'Изменить'.",
             reply_markup=keyboard,
             parse_mode="HTML",
