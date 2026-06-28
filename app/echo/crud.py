@@ -163,6 +163,7 @@ async def get_user_messages(
 
     return list(messages)
 
+
 async def get_user_ai_messages(
     session: AsyncSession,
     user_id: int,
@@ -180,6 +181,7 @@ async def get_user_ai_messages(
     messages = result.scalars().all()
 
     return list(reversed(messages))
+
 
 async def get_topics(session: AsyncSession) -> list[Topic]:
     stmt = select(Topic)
