@@ -3,7 +3,7 @@ from typing import Optional
 from sqlalchemy.engine import Result
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, func
-from core.models import User, Topic, Message, Phrase, Ai_message
+from core.models import User, Topic, Message, Phrase
 
 MSK = timezone(timedelta(hours=3))
 
