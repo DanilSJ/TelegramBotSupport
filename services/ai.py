@@ -2,7 +2,7 @@ from openai import AsyncClient
 from openai import AuthenticationError
 from core.models import db_helper
 from services.crud import get_ai_use
-from typing import List, DictZ
+from typing import List, Dict
 
 
 class AI:
