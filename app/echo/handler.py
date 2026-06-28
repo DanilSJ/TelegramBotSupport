@@ -15,7 +15,6 @@ from app.echo.crud import (
     close_dialog,
     get_topic,
     get_user_ai_messages,
-    create_ai_messages,
 )
 from core.models import db_helper
 from services.ai import AI
@@ -248,12 +247,6 @@ async def echo(message: Message):
                 session=session,
                 user_id=user.id,
                 id_message=message.message_id,
-                message=message.text,
-                ai_message=result,
-            )
-            await create_ai_messages(
-                session=session,
-                user_id=user.id,
                 message=message.text,
                 ai_message=result,
             )

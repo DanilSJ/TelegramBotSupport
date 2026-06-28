@@ -168,11 +168,12 @@ async def get_user_ai_messages(
     session: AsyncSession,
     user_id: int,
     limit: int = 30,
-) -> list[Ai_message]:
+) -> list[Message]:
     stmt = (
-        select(Ai_message)
-        .where(Ai_message.user_id == user_id)
-        .order_by(Ai_message.create_at.desc())
+        select(Message)
+        .where(Message.user_id == user_id)
+        .where(Message.topic.is_(None))
+        .order_by(Message.create_at.desc())
         .limit(limit)
     )
 
@@ -180,25 +181,6 @@ async def get_user_ai_messages(
     messages = result.scalars().all()
 
     return list(reversed(messages))
-
-
-async def create_ai_messages(
-    session: AsyncSession,
-    user_id: int,
-    message: str,
-    ai_message: str,
-) -> Ai_message:
-    msg = Ai_message(
-        message=message,
-        ai_message=ai_message,
-        user_id=user_id,
-    )
-
-    session.add(msg)
-    await session.commit()
-    await session.refresh(msg)
-
-    return msg
 
 
 async def get_topics(session: AsyncSession) -> list[Topic]:
