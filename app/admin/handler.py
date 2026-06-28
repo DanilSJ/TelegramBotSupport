@@ -1281,11 +1281,6 @@ async def admin_view_system_prompt(callback: CallbackQuery):
                 ],
                 [
                     InlineKeyboardButton(
-                        text="📤 Полный текст", callback_data="admin_view_full_prompt"
-                    )
-                ],
-                [
-                    InlineKeyboardButton(
                         text="🔙 Назад", callback_data="admin_edit_system_prompt"
                     )
                 ],
@@ -1330,10 +1325,21 @@ async def admin_change_system_prompt_start(callback: CallbackQuery, state: FSMCo
 
         await state.update_data(current_system_prompt=ai.system_prompt)
 
+        # Обрезаем системный промпт, если он слишком длинный
+        max_length = 3500  # Оставляем запас для остального текста
+        prompt_text = ai.system_prompt
+
+        if len(prompt_text) > max_length:
+            # Обрезаем и добавляем индикатор, что текст обрезан
+            prompt_text = (
+                    prompt_text[:max_length]
+                    + "\n\n... (текст обрезан из-за ограничений Telegram)"
+            )
+
         await callback.message.edit_text(
             f"✏️ Изменение системного промпта\n\n"
             f"📌 Текущая модель: {ai.model}\n"
-            f"📌 Текущий промпт:\n{ai.system_prompt}\n\n"
+            f"📌 Текущий промпт:\n{prompt_text}\n\n"
             f"📝 Введите новый системный промпт:\n\n"
             f"💡 Системный промпт определяет поведение AI.\n"
             f"Например: 'Ты - полезный ассистент, который помогает пользователям.'\n\n"
