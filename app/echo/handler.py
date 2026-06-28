@@ -251,3 +251,7 @@ async def echo(message: Message):
                 ai_message=result,
             )
             return await message.answer(result, parse_mode="Markdown")
+        else:
+            return await message.answer(
+                "К сожалению, я не могу анализировать фотографии. Пожалуйста, свяжитесь с оператором, и он вам поможет». Чтобы позвать оператора, напишите «Позови оператора»"
+            )

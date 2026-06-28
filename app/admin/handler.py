@@ -1332,8 +1332,8 @@ async def admin_change_system_prompt_start(callback: CallbackQuery, state: FSMCo
         if len(prompt_text) > max_length:
             # Обрезаем и добавляем индикатор, что текст обрезан
             prompt_text = (
-                    prompt_text[:max_length]
-                    + "\n\n... (текст обрезан из-за ограничений Telegram)"
+                prompt_text[:max_length]
+                + "\n\n... (текст обрезан из-за ограничений Telegram)"
             )
 
         await callback.message.edit_text(
