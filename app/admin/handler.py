@@ -1,5 +1,7 @@
+import os
+
 from aiogram import Router, F
-from aiogram.filters import Command
+from aiogram.filters import Command, StateFilter
 from aiogram.types import (
     Message,
     CallbackQuery,
@@ -1326,11 +1328,10 @@ async def admin_change_system_prompt_start(callback: CallbackQuery, state: FSMCo
         await state.update_data(current_system_prompt=ai.system_prompt)
 
         # Обрезаем системный промпт, если он слишком длинный
-        max_length = 3500  # Оставляем запас для остального текста
+        max_length = 3500
         prompt_text = ai.system_prompt
 
         if len(prompt_text) > max_length:
-            # Обрезаем и добавляем индикатор, что текст обрезан
             prompt_text = (
                 prompt_text[:max_length]
                 + "\n\n... (текст обрезан из-за ограничений Telegram)"
@@ -1340,7 +1341,8 @@ async def admin_change_system_prompt_start(callback: CallbackQuery, state: FSMCo
             f"✏️ Изменение системного промпта\n\n"
             f"📌 Текущая модель: {ai.model}\n"
             f"📌 Текущий промпт:\n{prompt_text}\n\n"
-            f"📝 Введите новый системный промпт:\n\n"
+            f"📝 Введите новый системный промпт текстом\n"
+            f"📎 ИЛИ отправьте текстовый файл (.txt, .md, .json и т.д.)\n\n"
             f"💡 Системный промпт определяет поведение AI.\n"
             f"Например: 'Ты - полезный ассистент, который помогает пользователям.'\n\n"
             f"Чтобы отменить, напишите /cancel"
@@ -1351,13 +1353,110 @@ async def admin_change_system_prompt_start(callback: CallbackQuery, state: FSMCo
 
 @router.message(AdminStates.waiting_for_system_prompt_edit)
 async def admin_save_system_prompt(message: Message, state: FSMContext):
-    """Сохранение нового системного промпта"""
-    new_prompt = message.text.strip()
+    """Сохранение нового системного промпта из текста или файла"""
 
-    if not new_prompt:
-        await message.answer("❌ Промпт не может быть пустым. Попробуйте снова:")
+    new_prompt = None
+    is_from_file = False
+
+    # Проверяем, является ли сообщение текстом
+    if message.text and not message.text.startswith("/"):
+        new_prompt = message.text.strip()
+        if not new_prompt:
+            await message.answer("❌ Промпт не может быть пустым. Попробуйте снова:")
+            return
+
+    # Проверяем, является ли сообщение файлом
+    elif message.document:
+        try:
+            # Получаем информацию о файле
+            document = message.document
+
+            # Проверяем размер файла (максимум 5MB)
+            if document.file_size > 5 * 1024 * 1024:
+                await message.answer(
+                    "❌ Файл слишком большой! Максимальный размер: 5MB.\n"
+                    "Пожалуйста, отправьте файл меньшего размера или введите текст вручную."
+                )
+                return
+
+            # Проверяем расширение файла
+            allowed_extensions = {
+                ".txt",
+                ".md",
+                ".json",
+                ".xml",
+                ".yaml",
+                ".yml",
+                ".csv",
+                ".log",
+            }
+            file_extension = os.path.splitext(document.file_name)[1].lower()
+
+            if file_extension not in allowed_extensions:
+                await message.answer(
+                    f"❌ Неподдерживаемый тип файла: {file_extension}\n"
+                    f"Поддерживаются: {', '.join(allowed_extensions)}\n"
+                    f"Или введите текст вручную."
+                )
+                return
+
+            # Скачиваем файл
+            file_path = f"temp_{document.file_name}"
+            await message.bot.download(document.file_id, destination=file_path)
+
+            # Читаем содержимое файла
+            try:
+                # Определяем кодировку файла
+                import chardet
+
+                with open(file_path, "rb") as f:
+                    raw_data = f.read()
+                    encoding = chardet.detect(raw_data)["encoding"] or "utf-8"
+
+                with open(file_path, "r", encoding=encoding) as f:
+                    new_prompt = f.read().strip()
+
+                # Удаляем временный файл
+                os.remove(file_path)
+
+                if not new_prompt:
+                    await message.answer(
+                        "❌ Файл пуст. Пожалуйста, отправьте непустой файл или введите текст вручную."
+                    )
+                    return
+
+                is_from_file = True
+
+            except UnicodeDecodeError:
+                os.remove(file_path) if os.path.exists(file_path) else None
+                await message.answer(
+                    "❌ Не удалось прочитать файл. Убедитесь, что файл содержит текстовые данные.\n"
+                    "Попробуйте сохранить файл в кодировке UTF-8 или введите текст вручную."
+                )
+                return
+            except Exception as e:
+                os.remove(file_path) if os.path.exists(file_path) else None
+                await message.answer(
+                    f"❌ Ошибка при чтении файла: {str(e)}\n"
+                    "Пожалуйста, попробуйте снова или введите текст вручную."
+                )
+                return
+
+        except Exception as e:
+            await message.answer(
+                f"❌ Ошибка при обработке файла: {str(e)}\n"
+                "Пожалуйста, попробуйте снова или введите текст вручную."
+            )
+            return
+
+    else:
+        await message.answer(
+            "❌ Пожалуйста, отправьте текст или текстовый файл.\n"
+            "Поддерживаются файлы: .txt, .md, .json, .xml, .yaml, .yml, .csv, .log"
+        )
         return
 
+    # Сохраняем новый промпт
     async with db_helper.scoped_session_dependency() as session:
         ai = await update_system_prompt(session, new_prompt)
 
@@ -1369,16 +1468,41 @@ async def admin_save_system_prompt(message: Message, state: FSMContext):
             await state.clear()
             return
 
-        await message.answer(
-            f"✅ Системный промпт успешно обновлен!\n\n"
-            f"📌 Модель: {ai.model}\n"
-            f"📌 Новый промпт:\n{ai.system_prompt[:200]}...\n\n"
+        # Формируем ответное сообщение
+        response_text = (
+            f"✅ Системный промпт успешно обновлен!\n\n" f"📌 Модель: {ai.model}\n"
+        )
+
+        if is_from_file:
+            response_text += f"📎 Источник: файл {message.document.file_name}\n"
+
+        # Показываем первые 200 символов нового промпта
+        preview = new_prompt[:200]
+        if len(new_prompt) > 200:
+            preview += "..."
+
+        response_text += f"📌 Новый промпт (начало):\n{preview}\n\n"
+        response_text += f"📊 Длина промпта: {len(new_prompt)} символов\n\n"
+        response_text += (
             f"Теперь AI будет использовать этот промпт для всех новых ответов."
         )
+
+        await message.answer(response_text)
 
     await state.clear()
     await message.answer(
         "Выберите следующее действие:", reply_markup=get_admin_keyboard()
+    )
+
+
+@router.message(
+    StateFilter(AdminStates.waiting_for_system_prompt_edit), F.text == "/cancel"
+)
+async def cancel_system_prompt_edit(message: Message, state: FSMContext):
+    """Отмена изменения системного промпта"""
+    await state.clear()
+    await message.answer(
+        "❌ Изменение системного промпта отменено.", reply_markup=get_admin_keyboard()
     )
 
 
