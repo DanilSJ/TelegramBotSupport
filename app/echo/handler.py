@@ -184,11 +184,13 @@ async def echo(message: Message):
                     name=f"Запрос от {message.from_user.full_name}",
                 )
                 user_message = await get_user_messages(session, user.id)
-                for el in user_message[-10:]:
-                    text = f"Пользователь:\n\n{el.message}\n\n\nОтвет ИИ: {el.ai_message}"
+                for el in user_message[10:]:
+                    text = (
+                        f"Пользователь:\n\n{el.message}\n\n\nОтвет ИИ: {el.ai_message}"
+                    )
 
                     if len(text) > 4000:
-                        parts = [text[i:i + 4000] for i in range(0, len(text), 4000)]
+                        parts = [text[i : i + 4000] for i in range(0, len(text), 4000)]
                         for part in parts:
                             await message.bot.send_message(
                                 chat_id=settings.GROUP_ID_SUPPORT,
