@@ -27,6 +27,8 @@ from .crud import (
 )
 from app.echo.crud import create_user
 from app.start.crud import get_start_text
+import chardet
+
 
 router = Router()
 
@@ -1406,9 +1408,6 @@ async def admin_save_system_prompt(message: Message, state: FSMContext):
 
             # Читаем содержимое файла
             try:
-                # Определяем кодировку файла
-                import chardet
-
                 with open(file_path, "rb") as f:
                     raw_data = f.read()
                     encoding = chardet.detect(raw_data)["encoding"] or "utf-8"
