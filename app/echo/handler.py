@@ -183,8 +183,8 @@ async def echo(message: Message):
                     chat_id=settings.GROUP_ID_SUPPORT,
                     name=f"Запрос от {message.from_user.full_name}",
                 )
-                user_message = await get_user_messages(session, user.id)
-                for el in user_message[10:]:
+                user_message = await get_user_messages(session, user.id, 10)
+                for el in user_message:
                     text = (
                         f"Пользователь:\n\n{el.message}\n\n\nОтвет ИИ: {el.ai_message}"
                     )

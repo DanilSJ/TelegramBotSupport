@@ -29,7 +29,6 @@ from app.echo.crud import create_user
 from app.start.crud import get_start_text
 import chardet
 
-
 router = Router()
 
 
