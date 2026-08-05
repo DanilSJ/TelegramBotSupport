@@ -46,18 +46,19 @@ async def main():
     dp.include_router(echo_router)
 
     # Запускаем фоновую задачу
-    background_task = asyncio.create_task(delete_old_topics_task())
+    # background_task = asyncio.create_task(delete_old_topics_task())
 
-    try:
-        # Запускаем polling бота
-        await dp.start_polling(bot)
-    finally:
-        # Отменяем фоновую задачу при завершении
-        background_task.cancel()
-        try:
-            await background_task
-        except asyncio.CancelledError:
-            pass
+    await dp.start_polling(bot)
+    # try:
+    #     # Запускаем polling бота
+    #     await dp.start_polling(bot)
+    # finally:
+    #     # Отменяем фоновую задачу при завершении
+    #     background_task.cancel()
+    #     try:
+    #         await background_task
+    #     except asyncio.CancelledError:
+    #         pass
 
 
 if __name__ == "__main__":
