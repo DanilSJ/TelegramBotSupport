@@ -177,9 +177,11 @@ async def echo(message: Message):
 
         operator_phrases = await get_phrases(session)
 
+        operator_phrases_lower = [phrase.lower() for phrase in operator_phrases]
+
         if message.text:
             text_lower = message.text.lower()
-            if any(phrase in text_lower for phrase in operator_phrases):
+            if any(phrase in text_lower for phrase in operator_phrases_lower):
                 try:
                     topic = await message.bot.create_forum_topic(
                         chat_id=settings.GROUP_ID_SUPPORT,
