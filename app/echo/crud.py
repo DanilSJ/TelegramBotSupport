@@ -128,6 +128,7 @@ async def create_message(
     topic_id: int | None = None,
     ai_message: str | None = None,
     is_admin: bool | None = None,
+    message_for_user_id: str | None = None,
 ) -> Message:
     message_obj = Message(
         id_message=id_message,
@@ -136,6 +137,7 @@ async def create_message(
         topic_id=topic_id,
         user_id=user_id,
         is_admin=is_admin,
+        message_for_user_id=message_for_user_id,
     )
 
     session.add(message_obj)
@@ -245,3 +247,11 @@ async def close_dialog(
         await session.refresh(topic)
 
     return topic
+
+async def get_message_by_id(session: AsyncSession, message_id: int) -> Message | None:
+    stmt = select(Message).where(Message.id_message == message_id)
+
+    result: Result = await session.execute(stmt)
+    user = result.scalar_one_or_none()
+
+    return user

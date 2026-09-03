@@ -16,6 +16,7 @@ from app.echo.crud import (
     close_dialog,
     get_topic,
     get_user_ai_messages,
+    get_message_by_id,
 )
 from core.models import db_helper
 from services.ai import AI
@@ -39,6 +40,20 @@ async def get_user_history_messages(
             history_messages.append({"role": "assistant", "content": msg.ai_message})
 
     return history_messages
+
+@router.edited_message()
+async def admin_edit_message(message: Message):
+    async with db_helper.scoped_session_dependency() as session:
+        user = await create_user(
+            session, message.from_user.id, message.from_user.username
+        )
+
+        if not user.is_operator:
+            return None
+
+        msg = await get_message_by_id(session, message.message_id)
+
+        return await message.bot.edit_message_text(message.text, message_id=msg.message_for_user_id)
 
 
 @router.message()

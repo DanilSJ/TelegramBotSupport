@@ -6,6 +6,7 @@ from .base import Base
 class Message(Base):
     message: Mapped[str] = mapped_column(Text)
     id_message: Mapped[int] = mapped_column(BigInteger)
+    message_for_user_id: Mapped[int] = mapped_column(BigInteger, nullable=True)
     ai_message: Mapped[str] = mapped_column(Text, nullable=True)
 
     topic_id: Mapped[int] = mapped_column(ForeignKey("topics.topic_id"), nullable=True)
