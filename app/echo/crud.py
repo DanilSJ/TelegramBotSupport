@@ -128,7 +128,7 @@ async def create_message(
     topic_id: int | None = None,
     ai_message: str | None = None,
     is_admin: bool | None = None,
-    message_for_user_id: str | None = None,
+    message_for_user_id: int | None = None,
 ) -> Message:
     message_obj = Message(
         id_message=id_message,

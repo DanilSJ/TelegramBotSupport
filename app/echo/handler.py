@@ -77,20 +77,20 @@ async def echo(message: Message):
                     return await message.answer("Диалог закрыт")
                 if message.message_thread_id == el.topic_id:
                     client_user = await get_user(session, el.user_id)
-                    if message.text:
-                        await create_message(
-                            session=session,
-                            user_id=user.id,
-                            id_message=message.message_id,
-                            message=message.text,
-                            topic_id=user.user_topic_id,
-                            is_admin=True,
-                        )
                     try:
                         if message.text:
-                            return await message.bot.send_message(
+                            msg = await message.bot.send_message(
                                 client_user.telegram_id,
                                 message.text,
+                            )
+                            return await create_message(
+                                session=session,
+                                user_id=user.id,
+                                id_message=message.message_id,
+                                message=message.text,
+                                topic_id=user.user_topic_id,
+                                is_admin=True,
+                                message_for_user_id=msg.message_id,
                             )
                         elif message.photo:
                             return await message.bot.send_photo(
