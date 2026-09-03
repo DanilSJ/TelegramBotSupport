@@ -51,11 +51,11 @@ async def admin_edit_message(message: Message):
         if not user.is_operator:
             return None
 
-        msg = await get_message_by_id(session, message.message_id)
+        msg = await get_message_by_id(session, message.message_id, user.id)
         print(msg)
         print(msg.id_message)
         print(msg.message_for_user_id)
-        return await message.bot.edit_message_text(message.text, message_id=msg.message_for_user_id)
+        return await message.bot.edit_message_text(message.text, message_id=msg.message_for_user_id, chat_id=msg.client_user_id,)
 
 
 @router.message()
@@ -91,6 +91,7 @@ async def echo(message: Message):
                                 topic_id=user.user_topic_id,
                                 is_admin=True,
                                 message_for_user_id=msg.message_id,
+                                client_user_id=client_user.telegram_id,
                             )
                         elif message.photo:
                             return await message.bot.send_photo(
