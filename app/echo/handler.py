@@ -52,7 +52,9 @@ async def admin_edit_message(message: Message):
             return None
 
         msg = await get_message_by_id(session, message.message_id)
-
+        print(msg)
+        print(msg.id_message)
+        print(msg.message_for_user_id)
         return await message.bot.edit_message_text(message.text, message_id=msg.message_for_user_id)
 
 
