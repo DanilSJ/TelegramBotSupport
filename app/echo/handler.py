@@ -177,68 +177,70 @@ async def echo(message: Message):
 
         operator_phrases = await get_phrases(session)
 
-        if message.text and message.text.lower() in operator_phrases:
-            try:
-                topic = await message.bot.create_forum_topic(
-                    chat_id=settings.GROUP_ID_SUPPORT,
-                    name=f"Запрос от {message.from_user.full_name}",
-                )
-                user_message = await get_user_messages(session, user.id, 10)
-                for el in user_message:
-                    text = (
-                        f"Пользователь: {message.from_user.username}\nID: {message.from_user.id}\n\n{el.message}\n\n\nОтвет ИИ: {el.ai_message}"
+        if message.text:
+            text_lower = message.text.lower()
+            if any(phrase in text_lower for phrase in operator_phrases):
+                try:
+                    topic = await message.bot.create_forum_topic(
+                        chat_id=settings.GROUP_ID_SUPPORT,
+                        name=f"Запрос от {message.from_user.full_name}",
                     )
-
-                    if len(text) > 4000:
-                        parts = [text[i : i + 4000] for i in range(0, len(text), 4000)]
-                        for part in parts:
-                            await message.bot.send_message(
-                                chat_id=settings.GROUP_ID_SUPPORT,
-                                text=part,
-                                message_thread_id=topic.message_thread_id,
-                            )
-                            await asyncio.sleep(0.5)
-                    else:
-                        await message.bot.send_message(
-                            chat_id=settings.GROUP_ID_SUPPORT,
-                            text=text,
-                            message_thread_id=topic.message_thread_id,
+                    user_message = await get_user_messages(session, user.id, 10)
+                    for el in user_message:
+                        text = (
+                            f"Пользователь: {message.from_user.username}\nID: {message.from_user.id}\n\n{el.message}\n\n\nОтвет ИИ: {el.ai_message}"
                         )
 
-                    await asyncio.sleep(2)
+                        if len(text) > 4000:
+                            parts = [text[i : i + 4000] for i in range(0, len(text), 4000)]
+                            for part in parts:
+                                await message.bot.send_message(
+                                    chat_id=settings.GROUP_ID_SUPPORT,
+                                    text=part,
+                                    message_thread_id=topic.message_thread_id,
+                                )
+                                await asyncio.sleep(0.5)
+                        else:
+                            await message.bot.send_message(
+                                chat_id=settings.GROUP_ID_SUPPORT,
+                                text=text,
+                                message_thread_id=topic.message_thread_id,
+                            )
 
-                await message.bot.send_message(
-                    chat_id=settings.GROUP_ID_SUPPORT,
-                    text=f"Сообщение при котором вызвал пользователь тех поддержку:\n\n{message.text}",
-                    message_thread_id=topic.message_thread_id,
-                )
+                        await asyncio.sleep(2)
 
-                await update_user_connect_topic(
-                    session, message.from_user.id, topic.message_thread_id
-                )
-                await create_topic(
-                    session,
-                    f"Запрос от {message.from_user.full_name}",
-                    topic.message_thread_id,
-                    user.id,
-                )
-                await create_message(
-                    session=session,
-                    user_id=user.id,
-                    id_message=message.message_id,
-                    message=message.text,
-                    topic_id=topic.message_thread_id,
-                )
+                    await message.bot.send_message(
+                        chat_id=settings.GROUP_ID_SUPPORT,
+                        text=f"Сообщение при котором вызвал пользователь тех поддержку:\n\n{message.text}",
+                        message_thread_id=topic.message_thread_id,
+                    )
 
-                return await message.answer(
-                    "Ваш запрос передан оператору. Ожидайте ответа!"
-                )
+                    await update_user_connect_topic(
+                        session, message.from_user.id, topic.message_thread_id
+                    )
+                    await create_topic(
+                        session,
+                        f"Запрос от {message.from_user.full_name}",
+                        topic.message_thread_id,
+                        user.id,
+                    )
+                    await create_message(
+                        session=session,
+                        user_id=user.id,
+                        id_message=message.message_id,
+                        message=message.text,
+                        topic_id=topic.message_thread_id,
+                    )
 
-            except Exception as e:
-                print(f"Ошибка при отправке сообщения оператору: {e}")
-                return await message.answer(
-                    "Произошла ошибка при соединении с оператором. Попробуйте позже."
-                )
+                    return await message.answer(
+                        "Ваш запрос передан оператору. Ожидайте ответа!"
+                    )
+
+                except Exception as e:
+                    print(f"Ошибка при отправке сообщения оператору: {e}")
+                    return await message.answer(
+                        "Произошла ошибка при соединении с оператором. Попробуйте позже."
+                    )
 
         if message.text:
             ai = await get_ai_use(session)
