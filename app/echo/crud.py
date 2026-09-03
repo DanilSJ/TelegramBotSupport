@@ -146,14 +146,17 @@ async def create_message(
 
 
 async def get_user_messages(
-    session: AsyncSession,
-    user_id: int,
-    limit: int = 20,
+        session: AsyncSession,
+        user_id: int,
+        limit: int = 20,
 ) -> list[Message]:
+    two_days_ago = datetime.now() - timedelta(days=2)
+
     stmt = (
         select(Message)
         .where(Message.user_id == user_id)
         .where(Message.topic_id.is_(None))
+        .where(Message.create_at >= two_days_ago)
         .order_by(Message.create_at.desc())
         .limit(limit)
     )
@@ -165,14 +168,17 @@ async def get_user_messages(
 
 
 async def get_user_ai_messages(
-    session: AsyncSession,
-    user_id: int,
-    limit: int = 30,
+        session: AsyncSession,
+        user_id: int,
+        limit: int = 30,
 ) -> list[Message]:
+    two_days_ago = datetime.now() - timedelta(days=2)
+
     stmt = (
         select(Message)
         .where(Message.user_id == user_id)
         .where(Message.topic == None)
+        .where(Message.create_at >= two_days_ago)
         .order_by(Message.create_at.desc())
         .limit(limit)
     )
@@ -181,7 +187,6 @@ async def get_user_ai_messages(
     messages = result.scalars().all()
 
     return list(reversed(messages))
-
 
 async def get_topics(session: AsyncSession) -> list[Topic]:
     stmt = select(Topic)
