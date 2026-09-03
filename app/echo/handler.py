@@ -186,7 +186,7 @@ async def echo(message: Message):
                 user_message = await get_user_messages(session, user.id, 10)
                 for el in user_message:
                     text = (
-                        f"Пользователь:\n\n{el.message}\n\n\nОтвет ИИ: {el.ai_message}"
+                        f"Пользователь: {message.from_user.username}\nID: {message.from_user.id}\n\n{el.message}\n\n\nОтвет ИИ: {el.ai_message}"
                     )
 
                     if len(text) > 4000:
