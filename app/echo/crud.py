@@ -150,20 +150,23 @@ async def create_message(
 
 
 async def get_user_messages(
-        session: AsyncSession,
-        user_id: int,
-        limit: int = 20,
+    session: AsyncSession,
+    user_id: int,
+    limit: int = 20,
+    topic: bool = True,
 ) -> list[Message]:
     two_days_ago = datetime.now() - timedelta(days=2)
 
     stmt = (
         select(Message)
         .where(Message.user_id == user_id)
-        .where(Message.topic_id.is_(None))
         .where(Message.create_at >= two_days_ago)
-        .order_by(Message.create_at.desc())
-        .limit(limit)
     )
+
+    if not topic:
+        stmt = stmt.where(Message.topic_id.is_(None))
+
+    stmt = stmt.order_by(Message.create_at.desc()).limit(limit)
 
     result: Result = await session.execute(stmt)
     messages = result.scalars().all()

@@ -52,9 +52,6 @@ async def admin_edit_message(message: Message):
             return None
 
         msg = await get_message_by_id(session, message.message_id, user.id)
-        print(msg)
-        print(msg.id_message)
-        print(msg.message_for_user_id)
         return await message.bot.edit_message_text(message.text, message_id=msg.message_for_user_id, chat_id=msg.client_user_id,)
 
 
@@ -205,10 +202,10 @@ async def echo(message: Message):
                         chat_id=settings.GROUP_ID_SUPPORT,
                         name=f"Запрос от {message.from_user.full_name}",
                     )
-                    user_message = await get_user_messages(session, user.id, 10)
+                    user_message = await get_user_messages(session, user.id, 10, False)
                     for el in user_message:
                         text = (
-                            f"Пользователь: {message.from_user.username}\nID: {message.from_user.id}\n\n{el.message}\n\n\nОтвет ИИ: {el.ai_message}"
+                            f"Пользователь: @{message.from_user.username}\nID: {message.from_user.id}\n\n{el.message}\n\n\nОтвет ИИ: {el.ai_message}"
                         )
 
                         if len(text) > 4000:
