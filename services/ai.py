@@ -27,7 +27,9 @@ class AI:
                 response = result.choices[0].message.content
                 return response
             except Exception as e:
+                print(e)
                 return None
 
         except Exception as e:
+            print(e)
             raise e
