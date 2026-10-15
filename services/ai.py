@@ -16,7 +16,6 @@ class AI:
             client = AsyncClient(
                 api_key=ai.api_key,
                 base_url=ai.base_url,
-                timeout=90.0,
             )
 
             try:
