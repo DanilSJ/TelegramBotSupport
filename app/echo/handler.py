@@ -277,7 +277,7 @@ async def echo(message: Message):
 
             if not result:
                 return await message.answer(
-                    "Ошибка не удалось авторизоваться в ИИ(возможно закончились деньги на балансе или удален токен)"
+                    "Оператор, после этого задайте свой вопрос заново"
                 )
 
             await create_message(
